@@ -11,5 +11,10 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true
-  }
+  },
+  "references": [
+    {
+      "path": "./node_modules/wb-core"
+    }
+  ]
 }
