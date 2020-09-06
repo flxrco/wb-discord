@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common'
-import { Snowflake, Message, User } from 'discord.js'
+import { Snowflake, Message, Client } from 'discord.js'
 import MessageReactionWrapper from 'src/common/classes/message-reaction-wrapper.class'
 import { filter, mapTo, take, finalize } from 'rxjs/operators'
 import { timer, of, race } from 'rxjs'
 
 @Injectable()
 export class ReactionWatcherFactoryService {
-  constructor(private bot: User) {}
+  constructor(private client: Client) {}
+
+  private get bot() {
+    return this.client.user
+  }
 
   /**
    * Creates an observable which resolves if the current time is greater
