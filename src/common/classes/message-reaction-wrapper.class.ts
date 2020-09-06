@@ -9,6 +9,9 @@ import {
 import { fromEvent, of, never, Observable, merge } from 'rxjs'
 import { takeUntil, map, mapTo } from 'rxjs/operators'
 
+/**
+ * This class' purpose is to listen for reactions in a message.
+ */
 export default class MessageReactionWrapper {
   /**
    * Given a message, a new reaction collector is spawned off it and that same reaction collector
@@ -43,8 +46,8 @@ export default class MessageReactionWrapper {
   }
 
   /**
-   * @returns {ReactionMap} A snapshot of the number of reactions per emoji id. Each call will
-   *    generate a different reference of the map.
+   * A snapshot of the number of reactions per emoji id. Each call will
+   * generate a different reference of the map.
    */
   get reactions(): ReactionMap {
     const reactions = [...this.reactionCache.values()]
@@ -55,8 +58,8 @@ export default class MessageReactionWrapper {
   }
 
   /**
-   * @returns {Observable<void>} Emits and completes once the wrapper's internal collector
-   *    has ended. If it's already ended,  the emission and completion will happen upon subscription.
+   * Emits and completes once the wrapper's internal collector has ended.
+   * If it's already ended,  the emission and completion will happen upon subscription.
    */
   get end$() {
     const { collector } = this
@@ -80,7 +83,7 @@ export default class MessageReactionWrapper {
     return false
   }
 
-  private changeMapOp(type: ReactionChangeType) {
+  private generateMapOperator(type: ReactionChangeType) {
     return map<MessageReaction, ReactionChange>((r: MessageReaction) => {
       return {
         type,
@@ -91,18 +94,18 @@ export default class MessageReactionWrapper {
   }
 
   /**
-   * @returns {Observable<ReactionChange>} Emits when a user added or removed a reaction from the
-   *    message we're watching. The emission data will be about who did the reaction/removal and which
-   *    emoji was it.
+   * Emits when a user added or removed a reaction from the message we're
+   * watching. The emission data will be about whodid the reaction/removal
+   * and which emoji was it.
    */
   get change$(): Observable<ReactionChange> {
     const { collector } = this
 
     const collect$ = fromEvent(collector, 'collect').pipe(
-      this.changeMapOp(ReactionChangeType.COLLECT)
+      this.generateMapOperator(ReactionChangeType.COLLECT)
     )
     const remove$ = fromEvent<MessageReaction>(collector, 'remove').pipe(
-      this.changeMapOp(ReactionChangeType.REMOVE)
+      this.generateMapOperator(ReactionChangeType.REMOVE)
     )
 
     return merge(collect$, remove$).pipe(takeUntil(this.end$))
@@ -110,8 +113,7 @@ export default class MessageReactionWrapper {
 
   /**
    * @see change$
-   * @returns {Observable<ReactionMap>} Similar to `change$`, but the emission are snapshots
-   *    of the reaction state.
+   * Similar to `change$`, but the emission are snapshots of the reaction state.
    */
   get reactions$(): Observable<ReactionMap> {
     const { collector } = this
@@ -120,6 +122,7 @@ export default class MessageReactionWrapper {
     }
 
     return merge(
+      of(this.reactions),
       fromEvent(collector, 'remove'),
       fromEvent(collector, 'collect')
     ).pipe(
