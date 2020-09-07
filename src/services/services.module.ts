@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common'
-import { ReactionWatcherFactoryService } from './reaction-watcher-factory/reaction-watcher-factory.service'
 import { ProvidersModule } from 'src/providers/providers.module'
 import { GuildUtilsService } from './guild-utils/guild-utils.service'
+import { ReactionsWatcherService } from './reactions-watcher/reactions-watcher.service'
 
 @Module({
-  providers: [ReactionWatcherFactoryService, GuildUtilsService],
+  providers: [GuildUtilsService, ReactionsWatcherService],
   imports: [ProvidersModule],
-  exports: [ReactionWatcherFactoryService, GuildUtilsService],
+  exports: [GuildUtilsService, ReactionsWatcherService],
 })
 export class ServicesModule {}

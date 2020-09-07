@@ -5,7 +5,7 @@ import { filter, mapTo, take, finalize } from 'rxjs/operators'
 import { timer, of, race } from 'rxjs'
 
 @Injectable()
-export class ReactionWatcherFactoryService {
+export class ReactionsWatcherService {
   constructor(private client: Client) {}
 
   private get bot() {
