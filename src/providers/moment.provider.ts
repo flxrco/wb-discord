@@ -1,5 +1,5 @@
 import { Provider } from '@nestjs/common'
-import moment, { Moment } from 'moment-timezone'
+import moment from 'moment-timezone'
 
 export const MOMENT_PROVIDER = 'MOMENT_PROVIDER'
 
