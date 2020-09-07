@@ -5,5 +5,6 @@ import { QuoteSubmitInteractorService } from './quote-submit-interactor/quote-su
 @Module({
   imports: [ProvidersModule],
   providers: [QuoteSubmitInteractorService],
+  exports: [QuoteSubmitInteractorService],
 })
 export class InteractorsModule {}
