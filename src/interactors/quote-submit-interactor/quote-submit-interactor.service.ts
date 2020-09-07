@@ -11,7 +11,7 @@ import MicroserviceMessages from 'src/common/core/enums/microservice-messages.en
 import { ClientProxy } from '@nestjs/microservices'
 
 @Injectable()
-export class QuoteCreateGatewayService extends QuoteSubmitInteractor {
+export class QuoteSubmitInteractorService extends QuoteSubmitInteractor {
   constructor(private redis: ClientProxy) {
     super()
   }

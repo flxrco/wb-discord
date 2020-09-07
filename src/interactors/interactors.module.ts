@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common'
 import { ProvidersModule } from 'src/providers/providers.module'
-import { GatewaysModule } from 'src/gateways/gateways.module'
+import { QuoteSubmitInteractorService } from './quote-submit-interactor/quote-submit-interactor.service'
 
 @Module({
-  imports: [ProvidersModule, GatewaysModule],
+  imports: [ProvidersModule],
+  providers: [QuoteSubmitInteractorService],
 })
 export class InteractorsModule {}
