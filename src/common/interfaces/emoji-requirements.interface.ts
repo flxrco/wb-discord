@@ -1,4 +1,6 @@
+import { Emoji } from 'discord.js'
+
 export default interface IEmojiRequirements {
-  identifier: string
+  emoji: Emoji
   amount: number
 }

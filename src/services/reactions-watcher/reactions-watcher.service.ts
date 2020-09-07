@@ -5,12 +5,11 @@ import { filter, mapTo, take, finalize, map, share } from 'rxjs/operators'
 import { timer, of, race, Subject } from 'rxjs'
 import { ISubmitQuoteOutput } from 'src/common/core/classes/interactors/quote-submit-interactor.class'
 import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
-import { GuildUtilsService } from '../guild-utils/guild-utils.service'
 import IQuote from 'src/common/core/interfaces/models/quote.interface'
 
 @Injectable()
 export class ReactionsWatcherService {
-  constructor(private client: Client, private guildUtils: GuildUtilsService) {}
+  constructor(private client: Client) {}
 
   private get bot() {
     return this.client.user
@@ -26,17 +25,11 @@ export class ReactionsWatcherService {
    * @returns A hot observable which emits true if the message reached the required emojis and
    *    false if the expiration date has lapsed.
    */
-  async watchSubmission(
+  watchSubmission(
     { quote, approvalStatus }: ISubmitQuoteOutput,
     message: Message,
-    { identifier, amount }: IEmojiRequirements
+    { emoji, amount }: IEmojiRequirements
   ) {
-    const emoji = await this.guildUtils.getEmoji(
-      identifier,
-      'identifier',
-      message.guild.id
-    )
-
     // create the watcher and map more contexts with its boolean results
     const watcher$ = this.createMessageWatcher(
       message,
