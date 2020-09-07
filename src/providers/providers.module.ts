@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common'
-import { DiscordClient } from './discord-client.provider'
+import DiscordClientProvider from './discord-client.provider'
 import { Client } from 'discord.js'
 import { ClientProxy } from '@nestjs/microservices'
-import { RedisClient } from './redis-client.provider'
+import RedisClientProvider from './redis-client.provider'
+import MomentProvider, { MOMENT_PROVIDER } from './moment.provider'
 
 @Module({
-  providers: [DiscordClient, RedisClient],
-  exports: [Client, ClientProxy],
+  providers: [DiscordClientProvider, RedisClientProvider, MomentProvider],
+  exports: [Client, ClientProxy, MOMENT_PROVIDER],
 })
 export class ProvidersModule {}

@@ -4,7 +4,7 @@ import { Client } from 'discord.js'
 import 'dotenv-defaults/config'
 const { DISCORD_TOKEN } = process.env
 
-export const DiscordClient: Provider = {
+export default {
   provide: Client,
   useFactory: () =>
     new Promise((resolve, reject) => {
@@ -20,4 +20,4 @@ export const DiscordClient: Provider = {
         reject(e)
       }
     }),
-}
+} as Provider

@@ -8,7 +8,7 @@ import 'dotenv-defaults/config'
 
 const { MQ_URI } = process.env
 
-export const RedisClient: Provider = {
+export default {
   provide: ClientProxy,
   useFactory: () => {
     return ClientProxyFactory.create({
@@ -18,4 +18,4 @@ export const RedisClient: Provider = {
       },
     })
   },
-}
+} as Provider
