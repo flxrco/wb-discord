@@ -75,7 +75,7 @@ export class QuoteSubmitController {
    * @param submission  The message which contains the bot command for submission.
    * @param submissionParams The parsed parameters of the command.
    */
-  async submitQuote(
+  async handler(
     submission: Message,
     submissionParams: ISubmissionParams
   ): Promise<void> {
