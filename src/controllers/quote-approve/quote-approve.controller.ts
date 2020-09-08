@@ -8,10 +8,10 @@ import { Message } from 'discord.js'
 @Controller()
 export class QuoteApproveController {
   constructor(
-    private watcherSvc: ReactionsWatcherService,
+    watcherSvc: ReactionsWatcherService,
     private submitInt: QuoteSubmitInteractorService
   ) {
-    this.watcherSvc.success$.subscribe(({ quote, message }) => {
+    watcherSvc.success$.subscribe(({ quote, message }) => {
       this.handler(message, quote)
     })
   }
