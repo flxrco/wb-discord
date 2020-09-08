@@ -10,7 +10,8 @@ import { fromEvent, of, never, Observable, merge } from 'rxjs'
 import { takeUntil, map, mapTo } from 'rxjs/operators'
 
 /**
- * This class' purpose is to listen for reactions in a message.
+ * This class' purpose is to wrap around the ReactionCollector class from `discord.js`
+ * with `RxJS`.
  */
 export default class MessageReactionWrapper {
   /**
