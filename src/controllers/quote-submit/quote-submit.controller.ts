@@ -58,7 +58,7 @@ export class QuoteSubmitController {
       authorId: author.id,
       submitterId: submitter.id,
       submitDt: now.toDate(),
-      // for now, expiration date will always be 7 days
+      // for now, expiration date will always be 7 days from the submission date
       expireDt: now.add(7, 'days').toDate(),
       channelId: channel.id,
       content,
