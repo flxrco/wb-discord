@@ -59,7 +59,7 @@ export class ReactionsWatcherService {
    * Emits the submissions which completed their emoji requirements.
    */
   get success$() {
-    return this.resultSubject.asObservable().pipe(map(d => d.didComplete))
+    return this.resultSubject.asObservable().pipe(filter(d => d.didComplete))
   }
 
   /**
@@ -67,7 +67,7 @@ export class ReactionsWatcherService {
    * their expiration dates.
    */
   get expire$() {
-    return this.resultSubject.asObservable().pipe(map(d => !d.didComplete))
+    return this.resultSubject.asObservable().pipe(filter(d => !d.didComplete))
   }
 
   /**
