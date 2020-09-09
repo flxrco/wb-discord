@@ -6,6 +6,9 @@ import { ISubmitQuoteOutput } from 'src/common/core/classes/interactors/quote-su
 import { GuildUtilsService } from 'src/services/guild-utils/guild-utils.service'
 import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
+import { CommandParserService } from 'src/services/command-parser/command-parser.service'
+import { isDeepStrictEqual } from 'util'
+import { filter, map } from 'rxjs/operators'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
@@ -13,8 +16,42 @@ export class QuoteSubmitController {
   constructor(
     private submitInt: QuoteSubmitInteractorService,
     private guildUtils: GuildUtilsService,
-    private watcherSvc: ReactionsWatcherService
-  ) {}
+    private watcherSvc: ReactionsWatcherService,
+    private parserSvc: CommandParserService
+  ) {
+    this.submitted$.subscribe(this.handler.bind(this))
+  }
+
+  static readonly USER_MENTION_PATTERN = /^<@!?(\d{17,19})>$/
+
+  private get submitted$() {
+    return this.parserSvc.getOnParseObservable<ISubmitCommandParams>().pipe(
+      filter(
+        ({ commands }) =>
+          isDeepStrictEqual(commands, ['submit']) ||
+          isDeepStrictEqual(commands, ['add'])
+      ),
+      filter(({ message, params }) => {
+        if (!QuoteSubmitController.USER_MENTION_PATTERN.test(params.author)) {
+          return false
+        }
+
+        const snowflake = QuoteSubmitController.USER_MENTION_PATTERN.exec(
+          params.author
+        )[1]
+
+        return message.mentions.users.has(snowflake)
+      }),
+      map(
+        ({ message, params }) =>
+          ({
+            message,
+            content: params.content,
+            yearOverride: params.year,
+          } as ISubmitHandlerParams)
+      )
+    )
+  }
 
   /**
    * Generates a string which serves as the bot's response to a submission.
@@ -44,13 +81,12 @@ export class QuoteSubmitController {
    *    the user's `submissionMessage`.
    */
   private async submitToCoreMicroservice(
-    submissionMessage: Message,
-    { content, yearOverride }: ISubmissionParams,
+    { content, yearOverride, message }: ISubmitHandlerParams,
     replyMessage: Message
   ) {
-    const submitter = submissionMessage.author
-    const author = submissionMessage.mentions.users.first()
-    const { channel, guild } = submissionMessage
+    const submitter = message.author
+    const author = message.mentions.users.first()
+    const { channel, guild } = message
 
     const now = moment()
     // this does the actual call to the core microservice
@@ -75,27 +111,20 @@ export class QuoteSubmitController {
    * @param submission  The message which contains the bot command for submission.
    * @param submissionParams The parsed parameters of the command.
    */
-  async handler(
-    submission: Message,
-    submissionParams: ISubmissionParams
-  ): Promise<void> {
+  async handler(params: ISubmitHandlerParams): Promise<void> {
     // send the initial reply -- this indicates that the bot is loading
-    const reply = await submission.channel.send('🤔')
+    const reply = await params.message.channel.send('🤔')
 
     try {
       // perist the quote to the core microservice
-      const submitted = await this.submitToCoreMicroservice(
-        submission,
-        submissionParams,
-        reply
-      )
+      const submitted = await this.submitToCoreMicroservice(params, reply)
 
       // this will be fed to the reply and the watcher for the message
       const emojiReqs = {
         emoji: await this.guildUtils.getEmoji(
           '🤔',
           'name',
-          submission.guild.id
+          params.message.guild.id
         ),
         amount: 7,
       }
@@ -111,7 +140,7 @@ export class QuoteSubmitController {
        * and it will be included in the pool of quotes which can be retrieved by calling
        * the bot's receive function.
        */
-      this.watcherSvc.watchSubmission(submitted, submission, emojiReqs)
+      this.watcherSvc.watchSubmission(submitted, params.message, emojiReqs)
     } catch (e) {
       // we're not really expecting this one
       await reply.edit(
@@ -121,7 +150,14 @@ export class QuoteSubmitController {
   }
 }
 
-interface ISubmissionParams {
+interface ISubmitHandlerParams {
   content: string
   yearOverride?: number
+  message: Message
+}
+
+interface ISubmitCommandParams {
+  content: string
+  year?: number
+  author: string
 }
