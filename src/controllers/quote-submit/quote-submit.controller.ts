@@ -136,7 +136,7 @@ export class QuoteSubmitController {
        * and it will be included in the pool of quotes which can be retrieved by calling
        * the bot's receive function.
        */
-      this.watcherSvc.watchSubmission(submitted, params.message, emojiReqs)
+      this.watcherSvc.watchSubmission(submitted, reply, emojiReqs)
     } catch (e) {
       // we're not really expecting this one
       await reply.edit(

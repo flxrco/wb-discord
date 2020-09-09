@@ -56,7 +56,7 @@ export class ReactionsWatcherService {
           }
         })
       )
-      .subscribe(this.resultSubject.next.bind(this.resultSubject))
+      .subscribe(data => this.resultSubject.next(data))
 
     // if we dont use share(), two watchers for a single message will be created
     return watcher$

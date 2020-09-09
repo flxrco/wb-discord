@@ -54,7 +54,6 @@ export class CommandParserService {
   private onCommand({ command, message }: ICommandMessage) {
     YARGS_INSTANCE.parse(command, {}, (err, argv) => {
       if (err) {
-        console.log(err)
         return
       }
 
