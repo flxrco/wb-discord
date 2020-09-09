@@ -53,7 +53,7 @@ export default class MessageReactionWrapper {
   get reactions(): ReactionMap {
     const reactions = [...this.reactionCache.values()]
     return reactions.reduce((map, r) => {
-      map[r.emoji.id] = r.users.cache.keyArray()
+      map[r.emoji.name] = r.users.cache.keyArray()
       return map
     }, {})
   }
@@ -88,7 +88,7 @@ export default class MessageReactionWrapper {
     return map<MessageReaction, ReactionChange>((r: MessageReaction) => {
       return {
         type,
-        emojiId: r.emoji.id,
+        emoji: r.emoji.name,
         userId: r.users.cache.first().id,
       }
     })
@@ -144,7 +144,7 @@ export enum ReactionChangeType {
 
 export interface ReactionChange {
   userId: Snowflake
-  emojiId: Snowflake
+  emoji: Snowflake
   type: ReactionChangeType
 }
 

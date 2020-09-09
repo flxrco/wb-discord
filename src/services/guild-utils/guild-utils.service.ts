@@ -9,18 +9,13 @@ export class GuildUtilsService {
     return await this.client.guilds.fetch(id)
   }
 
-  async getEmoji(
-    keyword: string,
-    category: 'id' | 'identifier' | 'name',
-    guildId: string
-  ) {
-    const filters = {
-      id: e => e.id === keyword,
-      identifier: e => e.identifier === keyword,
-      name: e => e.name === keyword,
-    }
-
+  async getEmoji(identifier: string, guildId: string) {
     const g = await this.getGuild(guildId)
-    return g.emojis.cache.find(filters[category])
+    return g.emojis.cache.find(
+      e =>
+        e.identifier === identifier ||
+        e.name === identifier ||
+        e.id === identifier
+    )
   }
 }

@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common'
-import { Message, Client, Emoji } from 'discord.js'
+import { Message, Client } from 'discord.js'
 import MessageReactionWrapper from 'src/common/classes/message-reaction-wrapper.class'
-import { filter, mapTo, take, finalize, map, share } from 'rxjs/operators'
+import {
+  filter,
+  mapTo,
+  take,
+  finalize,
+  map,
+  share,
+  catchError,
+} from 'rxjs/operators'
 import { timer, of, race, Subject } from 'rxjs'
 import { ISubmitQuoteOutput } from 'src/common/core/classes/interactors/quote-submit-interactor.class'
 import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
@@ -28,13 +36,12 @@ export class ReactionsWatcherService {
   watchSubmission(
     { quote, approvalStatus }: ISubmitQuoteOutput,
     message: Message,
-    { emoji, amount }: IEmojiRequirements
+    reqs: IEmojiRequirements
   ) {
     // create the watcher and map more contexts with its boolean results
     const watcher$ = this.createMessageWatcher(
       message,
-      emoji,
-      amount,
+      reqs,
       new Date(approvalStatus.expireDt)
     ).pipe(share())
 
@@ -49,7 +56,7 @@ export class ReactionsWatcherService {
           }
         })
       )
-      .subscribe(this.resultSubject.next.bind(this))
+      .subscribe(this.resultSubject.next.bind(this.resultSubject))
 
     // if we dont use share(), two watchers for a single message will be created
     return watcher$
@@ -81,8 +88,7 @@ export class ReactionsWatcherService {
    */
   private createMessageWatcher(
     message: Message,
-    emoji: Emoji,
-    count: number,
+    { emoji, amount }: IEmojiRequirements,
     expireDt: Date
   ) {
     const now = new Date()
@@ -95,22 +101,23 @@ export class ReactionsWatcherService {
     const { bot } = this
     const wrapper = MessageReactionWrapper.wrap(
       message,
-      (r, u) => r.emoji.id === emoji.id && u.id !== bot.id
+      (r, u) => r.emoji.name === emoji && u.id !== bot.id
     )
 
     // this observable will emit if we've reache the amount of reactions that we need
     const reactionComplete$ = wrapper.reactions$.pipe(
       filter(rm => {
-        const reactors = rm[emoji.id] || []
-        return reactors.filter(id => id !== bot.id).length === count
+        const reactors = rm[emoji] || []
+        return reactors.filter(id => id !== bot.id).length === amount
       }),
       mapTo(true)
     )
 
     // this one will emit if we've lapsed the expiration date
-    const lapsedExpireDt$ = timer(
-      expireDt.getMilliseconds() - now.getMilliseconds()
-    ).pipe(take(1), mapTo(false))
+    const lapsedExpireDt$ = timer(expireDt.getTime() - now.getTime()).pipe(
+      take(1),
+      mapTo(false)
+    )
 
     return race(lapsedExpireDt$, reactionComplete$).pipe(
       // once either observable has emitted, the wrapper gets killed to prevent memory leaks

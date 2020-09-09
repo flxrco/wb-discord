@@ -3,7 +3,6 @@ import { Message } from 'discord.js'
 import moment = require('moment-timezone')
 import { QuoteSubmitInteractorService } from 'src/interactors/quote-submit-interactor/quote-submit-interactor.service'
 import { ISubmitQuoteOutput } from 'src/common/core/classes/interactors/quote-submit-interactor.class'
-import { GuildUtilsService } from 'src/services/guild-utils/guild-utils.service'
 import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
 import { CommandParserService } from 'src/services/command-parser/command-parser.service'
@@ -15,7 +14,6 @@ import { filter, map } from 'rxjs/operators'
 export class QuoteSubmitController {
   constructor(
     private submitInt: QuoteSubmitInteractorService,
-    private guildUtils: GuildUtilsService,
     private watcherSvc: ReactionsWatcherService,
     private parserSvc: CommandParserService
   ) {
@@ -121,11 +119,7 @@ export class QuoteSubmitController {
 
       // this will be fed to the reply and the watcher for the message
       const emojiReqs = {
-        emoji: await this.guildUtils.getEmoji(
-          '🤔',
-          'name',
-          params.message.guild.id
-        ),
+        emoji: '🤔',
         amount: 7,
       }
 
@@ -133,6 +127,8 @@ export class QuoteSubmitController {
       await reply.edit(
         this.generateSubmitQuoteSuccessReply(submitted, emojiReqs)
       )
+
+      await reply.react(emojiReqs.emoji)
 
       /*
        * our last reply was meant to be given reactions. these reactions serves as the
