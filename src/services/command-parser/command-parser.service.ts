@@ -62,11 +62,13 @@ export class CommandParserService {
       delete shallowClone._
       delete shallowClone.$0
 
-      this.eventBus.next({
+      const parsed: IParseResults = {
         commands: argv._,
         params: shallowClone,
         message,
-      })
+      }
+
+      this.eventBus.next(parsed)
     })
   }
 
