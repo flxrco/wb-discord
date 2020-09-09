@@ -4,7 +4,7 @@ import {
   ICommandMessage,
 } from '../message-watcher/message-watcher.service'
 import yargs = require('yargs')
-import { Subject } from 'rxjs'
+import { Subject, Observable } from 'rxjs'
 import { Message } from 'discord.js'
 
 const YARGS_INSTANCE = yargs
@@ -72,13 +72,17 @@ export class CommandParserService {
     })
   }
 
-  get parse$() {
+  get parsed$() {
     return this.eventBus.asObservable()
+  }
+
+  getOnParseObservable<T>() {
+    return this.parsed$ as Observable<IParseResults<T>>
   }
 }
 
-export interface IParseResults {
+export interface IParseResults<T = any> {
   commands: string[]
-  params: { [key: string]: any }
+  params: T
   message: Message
 }

@@ -14,6 +14,6 @@ import { CommandParserService } from './command-parser/command-parser.service'
   ],
 
   imports: [ProvidersModule, RepositoriesModule],
-  exports: [GuildUtilsService, ReactionsWatcherService],
+  exports: [GuildUtilsService, ReactionsWatcherService, CommandParserService],
 })
 export class ServicesModule {}
