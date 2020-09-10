@@ -6,6 +6,7 @@ import { QuoteSubmitController } from './quote-submit/quote-submit.controller'
 import { QuoteReceiveController } from './quote-receive/quote-receive.controller';
 import { QuoteApproveController } from './quote-approve/quote-approve.controller';
 import { QuoteRejectController } from './quote-reject/quote-reject.controller';
+import { QuoteRewatchController } from './quote-rewatch/quote-rewatch.controller';
 
 @Module({
   providers: [],
@@ -15,6 +16,6 @@ import { QuoteRejectController } from './quote-reject/quote-reject.controller';
     ServicesModule,
     InteractorsModule,
   ],
-  controllers: [QuoteSubmitController, QuoteReceiveController, QuoteApproveController, QuoteRejectController],
+  controllers: [QuoteSubmitController, QuoteReceiveController, QuoteApproveController, QuoteRejectController, QuoteRewatchController],
 })
 export class ControllersModule {}
