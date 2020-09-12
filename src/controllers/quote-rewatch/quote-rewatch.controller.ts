@@ -1,8 +1,8 @@
 import { Controller } from '@nestjs/common'
-import { Client, Guild, TextChannel } from 'discord.js'
+import { Client, Guild, TextChannel, DiscordAPIError } from 'discord.js'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import { from } from 'rxjs'
-import { mergeMap, tap, filter, map } from 'rxjs/operators'
+import { from, of, throwError } from 'rxjs'
+import { mergeMap, tap, filter, map, catchError } from 'rxjs/operators'
 import {
   IPendingQuote,
   QuoteWatchInteractor,
@@ -97,13 +97,21 @@ export class QuoteRewatchController {
       mergeMap(
         pending =>
           from(messages.fetch(pending.submissionStatus.messageId)).pipe(
-            map(message => ({ pending, message }))
+            map(message => ({ pending, message })),
+            catchError((e: DiscordAPIError) => {
+              // the discord api will throw a 404 if the message wasn't found
+              if (e.httpStatus === 404) {
+                return of(null)
+              }
+
+              return throwError(e)
+            })
           ),
         // we're only allowing a certain amount of fetches at a time. check CONCURRENT_PROCESSES.
         CONCURRENT_PROCESSES
       ),
       // every fetch will flow to this filter function. if a message wasn't found, their process will stop here
-      filter(({ message }) => !!message),
+      filter(out => !!out),
       // a fetch will reach this point if the message for that pending quote was found. after it's been found, we'll watch it for reactions.
       tap(({ pending, message }) =>
         this.watchSvc.watchSubmission(pending, message)
