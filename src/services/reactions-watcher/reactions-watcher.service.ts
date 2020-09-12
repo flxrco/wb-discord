@@ -1,19 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { Message, Client } from 'discord.js'
 import MessageReactionWrapper from 'src/common/classes/message-reaction-wrapper.class'
-import {
-  filter,
-  mapTo,
-  take,
-  finalize,
-  map,
-  share,
-  catchError,
-} from 'rxjs/operators'
+import { filter, mapTo, take, finalize, map, share } from 'rxjs/operators'
 import { timer, of, race, Subject } from 'rxjs'
-import { ISubmitQuoteOutput } from 'src/common/core/classes/interactors/quote-submit-interactor.class'
-import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
-import IQuote from 'src/common/core/interfaces/models/quote.interface'
+import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
+import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
+import IQuote from 'src/common/interfaces/models/quote.interface'
 
 @Injectable()
 export class ReactionsWatcherService {
@@ -34,15 +26,14 @@ export class ReactionsWatcherService {
    *    false if the expiration date has lapsed.
    */
   watchSubmission(
-    { quote, approvalStatus }: ISubmitQuoteOutput,
-    message: Message,
-    reqs: IEmojiRequirements
+    { quote, submissionStatus }: IPendingQuote,
+    message: Message
   ) {
     // create the watcher and map more contexts with its boolean results
     const watcher$ = this.createMessageWatcher(
       message,
-      reqs,
-      new Date(approvalStatus.expireDt)
+      submissionStatus.requirements,
+      new Date(submissionStatus.expireDt)
     ).pipe(share())
 
     // map the emission of the watcher and then send it to the result subject for broadcasting
@@ -88,7 +79,7 @@ export class ReactionsWatcherService {
    */
   private createMessageWatcher(
     message: Message,
-    { emoji, amount }: IEmojiRequirements,
+    { emoji, count }: IApprovalRequirements,
     expireDt: Date
   ) {
     const now = new Date()
@@ -108,7 +99,7 @@ export class ReactionsWatcherService {
     const reactionComplete$ = wrapper.reactions$.pipe(
       filter(rm => {
         const reactors = rm[emoji] || []
-        return reactors.filter(id => id !== bot.id).length === amount
+        return reactors.filter(id => id !== bot.id).length === count
       }),
       mapTo(true)
     )

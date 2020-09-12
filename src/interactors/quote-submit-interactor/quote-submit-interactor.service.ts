@@ -1,39 +1,21 @@
 import { Injectable } from '@nestjs/common'
-import QuoteSubmitInteractor, {
-  ISubmitQuoteInput,
-  ISubmitQuoteOutput,
-  IApproveQuoteOutput,
-  IGetPendingQuotesOutput,
-} from 'src/common/core/classes/interactors/quote-submit-interactor.class'
-
-import MicroserviceMessages from 'src/common/core/enums/microservice-messages.enum'
 
 import { ClientProxy } from '@nestjs/microservices'
+import QuoteSubmitInteractor, {
+  ISubmitQuoteInput,
+} from 'src/common/classes/interactors/quote-submit-interactor.class'
+import MicroserviceMessages from 'src/common/enums/microservice-messages.enum'
+import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
 
 @Injectable()
 export class QuoteSubmitInteractorService extends QuoteSubmitInteractor {
-  constructor(private redis: ClientProxy) {
+  constructor(private msClient: ClientProxy) {
     super()
   }
 
-  async submitQuote(input: ISubmitQuoteInput): Promise<ISubmitQuoteOutput> {
-    return await this.redis
-      .send<ISubmitQuoteOutput>(MicroserviceMessages.SUBMIT_QUOTE, input)
-      .toPromise()
-  }
-
-  async approveQuote(messageId: string): Promise<IApproveQuoteOutput> {
-    return await this.redis
-      .send<IApproveQuoteOutput>(MicroserviceMessages.APPROVE_QUOTE, messageId)
-      .toPromise()
-  }
-
-  async getPendingQuotes(serverId: string): Promise<IGetPendingQuotesOutput> {
-    return await this.redis
-      .send<IGetPendingQuotesOutput>(
-        MicroserviceMessages.GET_PENDING_QUOTES,
-        serverId
-      )
+  submitQuote(input: ISubmitQuoteInput): Promise<IPendingQuote> {
+    return this.msClient
+      .send<IPendingQuote>(MicroserviceMessages.SUBMIT_QUOTE, input)
       .toPromise()
   }
 }

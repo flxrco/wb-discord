@@ -1,15 +1,15 @@
 import { Controller } from '@nestjs/common'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import { QuoteSubmitInteractorService } from 'src/interactors/quote-submit-interactor/quote-submit-interactor.service'
 import moment = require('moment')
-import IQuote from 'src/common/core/interfaces/models/quote.interface'
 import { Message } from 'discord.js'
+import IQuote from 'src/common/interfaces/models/quote.interface'
+import { QuoteWatchInteractor } from 'src/common/classes/interactors/quote-watch-interactor.class'
 
 @Controller()
 export class QuoteApproveController {
   constructor(
     watcherSvc: ReactionsWatcherService,
-    private submitInt: QuoteSubmitInteractorService
+    private watchInt: QuoteWatchInteractor
   ) {
     watcherSvc.success$.subscribe(({ quote, message }) => {
       this.handler(message, quote)
@@ -26,7 +26,7 @@ export class QuoteApproveController {
 
   async handler(message: Message, quote: IQuote) {
     const { channel } = message
-    await this.submitInt.approveQuote(message.id)
+    await this.watchInt.approveByMessageId(message.id)
     await message.delete({ reason: 'Quote got accepted.' })
     await channel.send(this.generateQuoteApprovalText(quote))
   }

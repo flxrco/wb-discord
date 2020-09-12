@@ -1,8 +1,8 @@
 import { Controller } from '@nestjs/common'
 import moment = require('moment')
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import IQuote from 'src/common/core/interfaces/models/quote.interface'
 import { Message } from 'discord.js'
+import IQuote from 'src/common/interfaces/models/quote.interface'
 
 @Controller()
 export class QuoteRejectController {

@@ -1,5 +1,5 @@
-import IQuote from '../../interfaces/models/quote.interface'
-import IReceive from '../../interfaces/models/receive.interface'
+import IQuote from 'src/common/interfaces/models/quote.interface'
+import IReceive from 'src/common/interfaces/models/receive.interface'
 
 export default abstract class QuoteReceiveInteractor {
   abstract receiveQuote(input: IReceiveQuoteInput): Promise<IRecieveQuoteOutput>

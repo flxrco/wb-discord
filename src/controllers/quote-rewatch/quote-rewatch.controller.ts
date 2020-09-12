@@ -1,11 +1,12 @@
 import { Controller } from '@nestjs/common'
-import { QuoteSubmitInteractorService } from 'src/interactors/quote-submit-interactor/quote-submit-interactor.service'
 import { Client, Guild, TextChannel } from 'discord.js'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import { IGetPendingQuotesOutput } from 'src/common/core/classes/interactors/quote-submit-interactor.class'
-import IEmojiRequirements from 'src/common/interfaces/emoji-requirements.interface'
 import { from } from 'rxjs'
 import { mergeMap, tap, filter, map } from 'rxjs/operators'
+import {
+  IPendingQuote,
+  QuoteWatchInteractor,
+} from 'src/common/classes/interactors/quote-watch-interactor.class'
 
 const CONCURRENT_PROCESSES = 5
 
@@ -13,7 +14,7 @@ const CONCURRENT_PROCESSES = 5
 export class QuoteRewatchController {
   constructor(
     private watchSvc: ReactionsWatcherService,
-    private submitInt: QuoteSubmitInteractorService,
+    private watchInt: QuoteWatchInteractor,
     private client: Client
   ) {
     this.processGuilds()
@@ -28,12 +29,6 @@ export class QuoteRewatchController {
   }
 
   private async processGuild(guild: Guild) {
-    // to change
-    const emojiReqs: IEmojiRequirements = {
-      emoji: '🤔',
-      amount: 1,
-    }
-
     const [pendingMap, channelMap] = await Promise.all([
       this.fetchQuotesAndGroupByChannel(guild),
       this.getIndexedTextChannels(guild),
@@ -56,7 +51,7 @@ export class QuoteRewatchController {
           const pendingArr = pendingMap[channelId]
           const channel = channelMap[channelId]
 
-          return this.watchChannelMessages(channel, pendingArr, emojiReqs)
+          return this.watchChannelMessages(channel, pendingArr)
         }, CONCURRENT_PROCESSES)
       )
       .toPromise()
@@ -65,9 +60,9 @@ export class QuoteRewatchController {
   private async fetchQuotesAndGroupByChannel({
     id,
   }: Guild): Promise<PendingQuoteMap> {
-    const found = await this.submitInt.getPendingQuotes(id)
+    const found = await this.watchInt.getPendingQuotes(id)
     return found.reduce((map, pending) => {
-      const { channelId } = pending.approvalStatus
+      const { channelId } = pending.submissionStatus
 
       if (map[channelId] === undefined) {
         map[channelId] = []
@@ -92,8 +87,7 @@ export class QuoteRewatchController {
 
   private watchChannelMessages(
     { messages }: TextChannel,
-    quotes: IGetPendingQuotesOutput,
-    emojiReqs: IEmojiRequirements
+    quotes: IPendingQuote[]
   ) {
     return from(quotes).pipe(
       /*
@@ -102,7 +96,7 @@ export class QuoteRewatchController {
        */
       mergeMap(
         pending =>
-          from(messages.fetch(pending.approvalStatus.messageId)).pipe(
+          from(messages.fetch(pending.submissionStatus.messageId)).pipe(
             map(message => ({ pending, message }))
           ),
         // we're only allowing a certain amount of fetches at a time. check CONCURRENT_PROCESSES.
@@ -111,12 +105,12 @@ export class QuoteRewatchController {
       // every fetch will flow to this filter function. if a message wasn't found, their process will stop here
       filter(({ message }) => !!message),
       // a fetch will reach this point if the message for that pending quote was found. after it's been found, we'll watch it for reactions.
-      tap(({ pending, message }) => {
-        this.watchSvc.watchSubmission(pending, message, emojiReqs)
-      })
+      tap(({ pending, message }) =>
+        this.watchSvc.watchSubmission(pending, message)
+      )
     )
   }
 }
 
-type PendingQuoteMap = Record<string, IGetPendingQuotesOutput>
+type PendingQuoteMap = Record<string, IPendingQuote[]>
 type IndexedTextChannels = Record<string, TextChannel>
