@@ -114,7 +114,10 @@ export class QuoteRewatchController {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async flagAsLost(pending: IPendingQuote): Promise<void> {
-    // noop
+    const { quote, submissionStatus } = pending
+    this.logger.warn(
+      `Lost message for quote ${quote.quoteId} in  in channel ${submissionStatus.channelId} of guild ${submissionStatus.serverId}.`
+    )
   }
 
   private async watchSubmission(
@@ -129,6 +132,11 @@ export class QuoteRewatchController {
      * watch is guaranteed to be created instantly.
      */
     this.watchSvc.watchSubmission(pending, message)
+    const { channel, guild } = message
+    const { quote } = pending
+    this.logger.debug(
+      `Rewatching quote ${quote.quoteId} in channel ${channel.id} of guild ${guild.id}.`
+    )
   }
 
   private async processPendingQuote(
