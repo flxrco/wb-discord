@@ -1,7 +1,6 @@
 import { Provider } from '@nestjs/common'
 import { Client } from 'discord.js'
 
-import 'dotenv-defaults/config'
 const { DISCORD_TOKEN } = process.env
 
 export default {

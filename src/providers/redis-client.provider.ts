@@ -4,7 +4,6 @@ import {
   Transport,
 } from '@nestjs/microservices'
 import { Provider } from '@nestjs/common'
-import 'dotenv-defaults/config'
 
 const { MQ_URI } = process.env
 
