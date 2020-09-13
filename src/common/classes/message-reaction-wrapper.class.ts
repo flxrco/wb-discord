@@ -6,8 +6,8 @@ import {
   User,
   ReactionCollectorOptions,
 } from 'discord.js'
-import { fromEvent, of, never, Observable, merge } from 'rxjs'
-import { takeUntil, map, mapTo } from 'rxjs/operators'
+import { fromEvent, of, never, Observable, merge, from } from 'rxjs'
+import { takeUntil, map, mapTo, mergeMap } from 'rxjs/operators'
 
 /**
  * This class' purpose is to wrap around the ReactionCollector class from `discord.js`
@@ -46,16 +46,16 @@ export default class MessageReactionWrapper {
     return this.message.reactions.cache
   }
 
-  /**
-   * A snapshot of the number of reactions per emoji id. Each call will
-   * generate a different reference of the map.
-   */
-  get reactions(): ReactionMap {
+  async getReactions(): Promise<ReactionMap> {
     const reactions = [...this.reactionCache.values()]
-    return reactions.reduce((map, r) => {
-      map[r.emoji.name] = r.users.cache.keyArray()
-      return map
-    }, {})
+    const map: ReactionMap = {}
+    for (const reaction of reactions) {
+      const { users, emoji } = reaction
+      const fetched = await users.fetch()
+      map[emoji.name] = fetched.keyArray()
+    }
+
+    return map
   }
 
   /**
@@ -123,12 +123,12 @@ export default class MessageReactionWrapper {
     }
 
     return merge(
-      of(this.reactions),
+      of(undefined),
       fromEvent(collector, 'remove'),
       fromEvent(collector, 'collect')
     ).pipe(
       takeUntil(this.end$),
-      map(() => this.reactions)
+      mergeMap(() => from(this.getReactions()))
     )
   }
 }

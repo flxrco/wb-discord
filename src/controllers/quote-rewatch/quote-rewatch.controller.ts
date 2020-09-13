@@ -39,6 +39,8 @@ export class QuoteRewatchController {
         mergeMap(guild => from(this.processGuild(guild)), CONCURRENT_SERVERS)
       )
       .toPromise()
+
+    this.logger.info('Finished the rewatching routine.')
   }
 
   private async processGuild(guild: Guild) {
