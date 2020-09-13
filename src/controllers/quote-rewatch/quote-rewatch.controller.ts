@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common'
+import { Controller, Inject } from '@nestjs/common'
 import {
   Client,
   Guild,
@@ -13,6 +13,8 @@ import {
   IPendingQuote,
   QuoteWatchInteractor,
 } from 'src/common/classes/interactors/quote-watch-interactor.class'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
+import { Logger } from 'winston'
 
 const CONCURRENT_SERVERS = 5
 const CONCURRENT_CHANNELS_PER_SERVER = 5
@@ -20,11 +22,14 @@ const CONCURRENT_MESSAGES_PER_CHANNEL = 5
 
 @Controller()
 export class QuoteRewatchController {
+  private logger: Logger
   constructor(
     private watchSvc: ReactionsWatcherService,
     private watchInt: QuoteWatchInteractor,
-    private client: Client
+    private client: Client,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
+    this.logger = logger.child({ context: 'QuoteRewatchController' })
     this.processGuilds()
   }
 
@@ -113,19 +118,27 @@ export class QuoteRewatchController {
   }
 
   private async processPendingQuote(
-    { messages }: TextChannel,
+    channel: TextChannel,
     pending: IPendingQuote
   ): Promise<void> {
+    const { messages, guild } = channel
+    const { quote } = pending
     try {
       const { submissionStatus } = pending
       const message = await messages.fetch(submissionStatus.messageId)
       await this.watchSubmission(pending, message)
+      this.logger.debug(
+        `Rewatching quote ${quote.quoteId} in channel ${channel.id} of guild ${guild.id}.`
+      )
     } catch (e) {
       if (!(e instanceof DiscordAPIError) || e.httpStatus !== 404) {
         throw e
       }
 
       await this.flagAsLost(pending)
+      this.logger.debug(
+        `Lost message for quote ${quote.quoteId} in  in channel ${channel.id} of guild ${guild.id}.`
+      )
     }
   }
 

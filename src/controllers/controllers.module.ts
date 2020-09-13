@@ -10,7 +10,6 @@ import { QuoteRewatchController } from './quote-rewatch/quote-rewatch.controller
 import { RepositoriesModule } from 'src/repositories/repositories.module'
 
 @Module({
-  providers: [],
   imports: [
     InteractorsModule,
     ProvidersModule,
