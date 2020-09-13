@@ -18,6 +18,10 @@ export default {
           resolve(client)
           logger.info('Sign in successful.')
         })
+
+        client.on('rateLimit', data =>
+          logger.error('Rate limit reached.', data)
+        )
       } catch (e) {
         reject(e)
       }
