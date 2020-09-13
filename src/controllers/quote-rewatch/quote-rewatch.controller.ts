@@ -1,14 +1,22 @@
 import { Controller } from '@nestjs/common'
-import { Client, Guild, TextChannel, DiscordAPIError } from 'discord.js'
+import {
+  Client,
+  Guild,
+  TextChannel,
+  DiscordAPIError,
+  Message,
+} from 'discord.js'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import { from, of, throwError } from 'rxjs'
-import { mergeMap, tap, filter, map, catchError } from 'rxjs/operators'
+import { from } from 'rxjs'
+import { mergeMap, tap } from 'rxjs/operators'
 import {
   IPendingQuote,
   QuoteWatchInteractor,
 } from 'src/common/classes/interactors/quote-watch-interactor.class'
 
-const CONCURRENT_PROCESSES = 5
+const CONCURRENT_SERVERS = 5
+const CONCURRENT_CHANNELS_PER_SERVER = 5
+const CONCURRENT_MESSAGES_PER_CHANNEL = 5
 
 @Controller()
 export class QuoteRewatchController {
@@ -23,7 +31,7 @@ export class QuoteRewatchController {
   private async processGuilds() {
     await from(this.client.guilds.cache.values())
       .pipe(
-        mergeMap(guild => from(this.processGuild(guild)), CONCURRENT_PROCESSES)
+        mergeMap(guild => from(this.processGuild(guild)), CONCURRENT_SERVERS)
       )
       .toPromise()
   }
@@ -52,7 +60,7 @@ export class QuoteRewatchController {
           const channel = channelMap[channelId]
 
           return this.watchChannelMessages(channel, pendingArr)
-        }, CONCURRENT_PROCESSES)
+        }, CONCURRENT_CHANNELS_PER_SERVER)
       )
       .toPromise()
   }
@@ -85,36 +93,52 @@ export class QuoteRewatchController {
       }, {})
   }
 
-  private watchChannelMessages(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async flagAsLost(pending: IPendingQuote): Promise<void> {
+    // noop
+  }
+
+  private async watchSubmission(
+    pending: IPendingQuote,
+    message: Message
+  ): Promise<void> {
+    /*
+     * We're not going to wait for this observable to finish because the only times that it
+     * will finish is if the quote was approved or rejected by any means.
+     *
+     * Anyways, this doesn't matter since watchSubmission does a local operation and the
+     * watch is guaranteed to be created instantly.
+     */
+    tap(() => this.watchSvc.watchSubmission(pending, message))
+  }
+
+  private async processPendingQuote(
     { messages }: TextChannel,
-    quotes: IPendingQuote[]
-  ) {
+    pending: IPendingQuote
+  ): Promise<void> {
+    try {
+      const { submissionStatus } = pending
+      const message = await messages.fetch(submissionStatus.messageId)
+      await this.watchSubmission(pending, message)
+    } catch (e) {
+      if (!(e instanceof DiscordAPIError) || e.httpStatus !== 404) {
+        throw e
+      }
+
+      await this.flagAsLost(pending)
+    }
+  }
+
+  private watchChannelMessages(channel: TextChannel, quotes: IPendingQuote[]) {
     return from(quotes).pipe(
       /*
        * For each quote in the array, try fetching it from the channel's message
        * manager. That's an async function.
        */
       mergeMap(
-        pending =>
-          from(messages.fetch(pending.submissionStatus.messageId)).pipe(
-            map(message => ({ pending, message })),
-            catchError((e: DiscordAPIError) => {
-              // the discord api will throw a 404 if the message wasn't found
-              if (e.httpStatus === 404) {
-                return of(null)
-              }
-
-              return throwError(e)
-            })
-          ),
+        pending => from(this.processPendingQuote(channel, pending)),
         // we're only allowing a certain amount of fetches at a time. check CONCURRENT_PROCESSES.
-        CONCURRENT_PROCESSES
-      ),
-      // every fetch will flow to this filter function. if a message wasn't found, their process will stop here
-      filter(out => !!out),
-      // a fetch will reach this point if the message for that pending quote was found. after it's been found, we'll watch it for reactions.
-      tap(({ pending, message }) =>
-        this.watchSvc.watchSubmission(pending, message)
+        CONCURRENT_MESSAGES_PER_CHANNEL
       )
     )
   }
