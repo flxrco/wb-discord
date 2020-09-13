@@ -9,6 +9,8 @@ export default interface ISubmissionStatus extends IBaseSubmissionStatus {
 
 export interface IBaseSubmissionStatus {
   messageId: string
+  messageDt: Date
+
   serverId: string
   channelId: string
 
