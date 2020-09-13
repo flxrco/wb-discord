@@ -136,7 +136,7 @@ export class QuoteRewatchController {
       }
 
       await this.flagAsLost(pending)
-      this.logger.debug(
+      this.logger.warn(
         `Lost message for quote ${quote.quoteId} in  in channel ${channel.id} of guild ${guild.id}.`
       )
     }

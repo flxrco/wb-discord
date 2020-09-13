@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common'
+import { Controller, Inject } from '@nestjs/common'
 import { Message } from 'discord.js'
 import moment = require('moment-timezone')
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
@@ -9,16 +9,22 @@ import ApprovalRequirementsRepository from 'src/common/classes/repositories/appr
 import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
 import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
 import QuoteSubmitInteractor from 'src/common/classes/interactors/quote-submit-interactor.class'
+import { Logger } from 'winston'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
 export class QuoteSubmitController {
+  private logger: Logger
+
   constructor(
     private submitInt: QuoteSubmitInteractor,
     private watcherSvc: ReactionsWatcherService,
     private parserSvc: CommandParserService,
-    private reqRepo: ApprovalRequirementsRepository
+    private reqRepo: ApprovalRequirementsRepository,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
+    this.logger = logger.child({ context: 'QuoteSubmitController' })
     this.submitted$.subscribe(this.handler.bind(this))
   }
 
@@ -149,6 +155,9 @@ export class QuoteSubmitController {
        * the bot's receive function.
        */
       this.watcherSvc.watchSubmission(submitted, reply)
+      this.logger.info(
+        `${message.author.id} submitted a quote in channel ${message.channel.id} of guild ${message.guild.id}.`
+      )
     } catch (e) {
       // we're not really expecting this one
       await reply.edit(

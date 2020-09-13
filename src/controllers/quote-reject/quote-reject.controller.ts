@@ -1,12 +1,19 @@
-import { Controller } from '@nestjs/common'
+import { Controller, Inject } from '@nestjs/common'
 import moment = require('moment')
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
 import { Message } from 'discord.js'
 import IQuote from 'src/common/interfaces/models/quote.interface'
+import { Logger } from 'winston'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 
 @Controller()
 export class QuoteRejectController {
-  constructor(watcherSvc: ReactionsWatcherService) {
+  private logger: Logger
+  constructor(
+    watcherSvc: ReactionsWatcherService,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
+  ) {
+    this.logger = logger.child({ context: 'QuoteRejectController' })
     watcherSvc.expire$.subscribe(({ message, quote }) =>
       this.handler(message, quote)
     )
@@ -24,5 +31,6 @@ export class QuoteRejectController {
     const { channel } = message
     await message.delete({ reason: 'Submission was rejected.' })
     await channel.send(this.generateQuoteApprovalText(quote))
+    this.logger.info(`Quote ${quote.quoteId} has expired.`)
   }
 }
