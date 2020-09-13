@@ -8,7 +8,7 @@ import {
 } from 'discord.js'
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
 import { from } from 'rxjs'
-import { mergeMap, tap } from 'rxjs/operators'
+import { mergeMap } from 'rxjs/operators'
 import {
   IPendingQuote,
   QuoteWatchInteractor,
@@ -109,7 +109,7 @@ export class QuoteRewatchController {
      * Anyways, this doesn't matter since watchSubmission does a local operation and the
      * watch is guaranteed to be created instantly.
      */
-    tap(() => this.watchSvc.watchSubmission(pending, message))
+    this.watchSvc.watchSubmission(pending, message)
   }
 
   private async processPendingQuote(

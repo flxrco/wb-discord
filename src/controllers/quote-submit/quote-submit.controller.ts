@@ -137,8 +137,6 @@ export class QuoteSubmitController {
         reply
       )
 
-      console.debug(submitted)
-
       // send the reply to the user that acknowledges that the quote has been received by the server
       await reply.edit(this.generateSubmitQuoteSuccessReply(submitted))
 
@@ -152,7 +150,6 @@ export class QuoteSubmitController {
        */
       this.watcherSvc.watchSubmission(submitted, reply)
     } catch (e) {
-      console.debug(e)
       // we're not really expecting this one
       await reply.edit(
         'An unexpected error occurred while submitting your quote'
