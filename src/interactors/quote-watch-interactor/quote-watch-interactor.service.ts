@@ -24,8 +24,9 @@ export class QuoteWatchInteractorService extends QuoteWatchInteractor {
       .toPromise()
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   flagAsLost(messageId: string): Promise<IPendingQuote> {
-    throw new Error('Method not implemented.')
+    return this.msClient
+      .send(MicroserviceMessages.FLAG_AS_LOST, messageId)
+      .toPromise()
   }
 }

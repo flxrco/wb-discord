@@ -112,11 +112,11 @@ export class QuoteRewatchController {
       }, {})
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private async flagAsLost(pending: IPendingQuote): Promise<void> {
     const { quote, submissionStatus } = pending
+    await this.watchInt.flagAsLost(submissionStatus.messageId)
     this.logger.warn(
-      `Lost message for quote ${quote.quoteId} in  in channel ${submissionStatus.channelId} of guild ${submissionStatus.serverId}.`
+      `Lost message for quote ${quote.quoteId} in channel ${submissionStatus.channelId} of guild ${submissionStatus.serverId}.`
     )
   }
 
@@ -137,31 +137,6 @@ export class QuoteRewatchController {
     this.logger.debug(
       `Rewatching quote ${quote.quoteId} in channel ${channel.id} of guild ${guild.id}.`
     )
-  }
-
-  private async processPendingQuote(
-    channel: TextChannel,
-    pending: IPendingQuote
-  ): Promise<void> {
-    const { messages, guild } = channel
-    const { quote } = pending
-    try {
-      const { submissionStatus } = pending
-      const message = await messages.fetch(submissionStatus.messageId)
-      await this.watchSubmission(pending, message)
-      this.logger.debug(
-        `Rewatching quote ${quote.quoteId} in channel ${channel.id} of guild ${guild.id}.`
-      )
-    } catch (e) {
-      if (!(e instanceof DiscordAPIError) || e.httpStatus !== 404) {
-        throw e
-      }
-
-      await this.flagAsLost(pending)
-      this.logger.warn(
-        `Lost message for quote ${quote.quoteId} in  in channel ${channel.id} of guild ${guild.id}.`
-      )
-    }
   }
 
   private async retreiveMessages(
