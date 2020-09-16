@@ -1,48 +1,67 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { Client, Message } from 'discord.js'
 import CommandPrefixRepository from 'src/common/classes/repositories/command-prefix-repository.class'
 import { Observable, fromEvent } from 'rxjs'
-import { mergeMap, map, filter } from 'rxjs/operators'
+import { mergeMap, map, filter, tap } from 'rxjs/operators'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
+import { Logger } from 'winston'
 
 const COMMAND_REGEXP = /(\S+)\s*(.*$)/
 
 @Injectable()
 export class MessageWatcherService {
+  private logger: Logger
+
   constructor(
     private client: Client,
-    private prefixRepo: CommandPrefixRepository
-  ) {}
+    private prefixRepo: CommandPrefixRepository,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
+  ) {
+    this.logger = logger.child({ context: 'MessageWatcherService' })
+  }
 
   get message$(): Observable<Message> {
     return fromEvent<Message>(this.client, 'message')
   }
 
-  get command$(): Observable<ICommandMessage> {
+  get prefixedMessage$(): Observable<ICommandMessage> {
     return this.message$.pipe(
-      mergeMap(message => {
-        return this.prefixRepo.getGuildPrefix$(message.guild.id).pipe(
-          map(guildPrefix => {
-            const { content } = message
+      mergeMap(message =>
+        this.prefixRepo
+          .getGuildPrefix$(message.guild.id)
+          .pipe(map(prefix => ({ prefix, message })))
+      ),
+      map(({ prefix: fetchedPrefix, message }) => {
+        const { content } = message
 
-            if (!COMMAND_REGEXP.test(content)) {
-              return null
-            }
+        if (!COMMAND_REGEXP.test(content)) {
+          return null
+        }
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const [source, prefix, command] = COMMAND_REGEXP.exec(content)
-            if (prefix !== guildPrefix) {
-              return null
-            }
+        // exec's index 0 is just the whole string; we don't need it
+        const [prefix, command] = COMMAND_REGEXP.exec(content).slice(1)
+        if (prefix !== fetchedPrefix) {
+          return null
+        }
 
-            return {
-              message,
-              prefix,
-              command,
-            }
-          })
-        )
+        return {
+          message,
+          prefix,
+          command,
+        }
       }),
-      filter(message => !!message)
+      filter(message => !!message),
+      tap(({ message, prefix }) => {
+        const { author, guild, channel } = message
+        this.logger.silly(
+          `Prefix recognized [${prefix}]: ${message.content}.`,
+          {
+            userId: author.id,
+            guildId: guild.id,
+            channelid: channel.id,
+          }
+        )
+      })
     )
   }
 }

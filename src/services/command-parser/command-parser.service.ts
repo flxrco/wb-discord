@@ -46,7 +46,7 @@ const YARGS_INSTANCE = yargs
 @Injectable()
 export class CommandParserService {
   constructor(messageSvc: MessageWatcherService) {
-    messageSvc.command$.subscribe(this.onCommand.bind(this))
+    messageSvc.prefixedMessage$.subscribe(this.onCommand.bind(this))
   }
 
   private eventBus = new Subject<IParseResults>()
