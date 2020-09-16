@@ -23,7 +23,7 @@ import { RepositoriesModule } from './repositories/repositories.module'
           ),
         }),
       ],
-      level: 'debug',
+      level: 'silly',
     }),
   ],
 })
