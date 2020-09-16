@@ -4,6 +4,8 @@ import { QuoteSubmitInteractorService } from './quote-submit-interactor/quote-su
 import { QuoteWatchInteractorService } from './quote-watch-interactor/quote-watch-interactor.service'
 import QuoteSubmitInteractor from 'src/common/classes/interactors/quote-submit-interactor.class'
 import { QuoteWatchInteractor } from 'src/common/classes/interactors/quote-watch-interactor.class'
+import { QuoteReceiveInteractorService } from './quote-receive-interactor/quote-receive-interactor.service'
+import QuoteReceiveInteractor from 'src/common/classes/interactors/quote-receive-interactor.class'
 
 @Module({
   imports: [ProvidersModule],
@@ -17,8 +19,16 @@ import { QuoteWatchInteractor } from 'src/common/classes/interactors/quote-watch
       useClass: QuoteWatchInteractorService,
       provide: QuoteWatchInteractor,
     },
+    {
+      useClass: QuoteReceiveInteractorService,
+      provide: QuoteReceiveInteractor,
+    },
   ],
 
-  exports: [QuoteSubmitInteractor, QuoteWatchInteractor],
+  exports: [
+    QuoteSubmitInteractor,
+    QuoteWatchInteractor,
+    QuoteReceiveInteractor,
+  ],
 })
 export class InteractorsModule {}
