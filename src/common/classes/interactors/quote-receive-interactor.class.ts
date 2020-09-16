@@ -10,6 +10,7 @@ export interface IReceiveQuoteInput {
   channelId: string
   messageId: string
   receiverId: string
+  authorId: string
 }
 
 export interface IRecieveQuoteOutput {
