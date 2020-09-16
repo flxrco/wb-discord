@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import {
   QuoteWatchInteractor,
   IPendingQuote,
+  IGetPendingQuotesParam,
 } from 'src/common/classes/interactors/quote-watch-interactor.class'
 import { ClientProxy } from '@nestjs/microservices'
 import MicroserviceMessages from 'src/common/enums/microservice-messages.enum'
@@ -18,9 +19,9 @@ export class QuoteWatchInteractorService extends QuoteWatchInteractor {
       .toPromise()
   }
 
-  getPendingQuotes(serverId: string): Promise<IPendingQuote[]> {
+  getPendingQuotes(params: IGetPendingQuotesParam): Promise<IPendingQuote[]> {
     return this.msClient
-      .send(MicroserviceMessages.GET_PENDING_QUOTES, serverId)
+      .send(MicroserviceMessages.GET_PENDING_QUOTES, params)
       .toPromise()
   }
 

@@ -74,9 +74,9 @@ export class QuoteRewatchController {
   }
 
   private async fetchQuotesAndGroupByChannel({
-    id,
+    id: serverId,
   }: Guild): Promise<GroupedPendingQuoteMap> {
-    const found = await this.watchInt.getPendingQuotes(id)
+    const found = await this.watchInt.getPendingQuotes({ serverId })
     const indexed: GroupedPendingQuoteMap = found.reduce((map, pending) => {
       const { channelId } = pending.submissionStatus
 
