@@ -12,4 +12,6 @@ export interface IBaseQuote {
 
   submitterId: string
   submitDt: Date
+
+  serverId: string
 }

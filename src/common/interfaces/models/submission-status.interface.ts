@@ -11,7 +11,6 @@ export interface IBaseSubmissionStatus {
   messageId: string
   messageDt: Date
 
-  serverId: string
   channelId: string
 
   expireDt: Date

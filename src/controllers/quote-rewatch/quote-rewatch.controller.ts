@@ -116,7 +116,7 @@ export class QuoteRewatchController {
     const { quote, submissionStatus } = pending
     await this.watchInt.flagAsLost(submissionStatus.messageId)
     this.logger.warn(
-      `Lost message for quote ${quote.quoteId} in channel ${submissionStatus.channelId} of guild ${submissionStatus.serverId}.`
+      `Lost message for quote ${quote.quoteId} in channel ${submissionStatus.channelId} of guild ${quote.serverId}.`
     )
   }
 
