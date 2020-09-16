@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import {
   MessageWatcherService,
   ICommandMessage,
@@ -6,7 +6,10 @@ import {
 import yargs = require('yargs')
 import { Subject, Observable } from 'rxjs'
 import { Message } from 'discord.js'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
+import { Logger } from 'winston'
 
+// TODO stick this up in a provider or something, jesus
 const YARGS_INSTANCE = yargs
   .command(
     ['submit <content> <author> [year]', 'add'],
@@ -45,15 +48,28 @@ const YARGS_INSTANCE = yargs
 
 @Injectable()
 export class CommandParserService {
-  constructor(messageSvc: MessageWatcherService) {
+  private logger: Logger
+
+  constructor(
+    messageSvc: MessageWatcherService,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
+  ) {
+    this.logger = logger.child({ context: 'CommandParserService' })
     messageSvc.prefixedMessage$.subscribe(this.onCommand.bind(this))
   }
 
+  // successful parses
   private eventBus = new Subject<IParseResults>()
+  // erroneous parses
+  private errorBus = new Subject<IParseError>()
 
   private onCommand({ command, message }: ICommandMessage) {
-    YARGS_INSTANCE.parse(command, {}, (err, argv) => {
-      if (err) {
+    YARGS_INSTANCE.parse(command, {}, (error, argv) => {
+      if (error) {
+        this.errorBus.next({
+          error,
+          message,
+        })
         return
       }
 
@@ -75,6 +91,10 @@ export class CommandParserService {
     return this.eventBus.asObservable()
   }
 
+  get error$() {
+    return this.errorBus.asObservable()
+  }
+
   getOnParseObservable<T>() {
     return this.parsed$ as Observable<IParseResults<T>>
   }
@@ -83,5 +103,10 @@ export class CommandParserService {
 export interface IParseResults<T = any> {
   commands: string[]
   params: T
+  message: Message
+}
+
+export interface IParseError {
+  error: Error
   message: Message
 }

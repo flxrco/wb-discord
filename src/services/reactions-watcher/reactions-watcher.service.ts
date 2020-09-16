@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { Message, Client } from 'discord.js'
 import MessageReactionWrapper from 'src/common/classes/message-reaction-wrapper.class'
 import { filter, mapTo, take, finalize, map, share } from 'rxjs/operators'
@@ -6,10 +6,19 @@ import { timer, of, race, Subject } from 'rxjs'
 import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
 import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
 import IQuote from 'src/common/interfaces/models/quote.interface'
+import { Logger } from 'winston'
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 
 @Injectable()
 export class ReactionsWatcherService {
-  constructor(private client: Client) {}
+  private logger: Logger
+
+  constructor(
+    private client: Client,
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
+  ) {
+    this.logger = logger.child({ context: 'ReactionsWatcherService' })
+  }
 
   private get bot() {
     return this.client.user
@@ -94,6 +103,18 @@ export class ReactionsWatcherService {
       message,
       (r, u) => r.emoji.name === emoji && u.id !== bot.id
     )
+
+    // for logging
+    wrapper.change$.subscribe(({ userId, type, emoji }) => {
+      this.logger.silly(`Reaction changes detected.`, {
+        userId,
+        type,
+        emoji,
+        messageId: message.id,
+        guildId: message.guild.id,
+        channelId: message.channel.id,
+      })
+    })
 
     // this observable will emit if we've reache the amount of reactions that we need
     const reactionComplete$ = wrapper.reactions$.pipe(

@@ -85,13 +85,11 @@ export default class MessageReactionWrapper {
   }
 
   private generateMapOperator(type: ReactionChangeType) {
-    return map<MessageReaction, ReactionChange>((r: MessageReaction) => {
-      return {
-        type,
-        emoji: r.emoji.name,
-        userId: r.users.cache.first().id,
-      }
-    })
+    return map<[MessageReaction, User], ReactionChange>(([r, u]) => ({
+      type,
+      emoji: r.emoji && r.emoji.name,
+      userId: u.id,
+    }))
   }
 
   /**
@@ -105,7 +103,7 @@ export default class MessageReactionWrapper {
     const collect$ = fromEvent(collector, 'collect').pipe(
       this.generateMapOperator(ReactionChangeType.COLLECT)
     )
-    const remove$ = fromEvent<MessageReaction>(collector, 'remove').pipe(
+    const remove$ = fromEvent(collector, 'remove').pipe(
       this.generateMapOperator(ReactionChangeType.REMOVE)
     )
 
@@ -138,8 +136,8 @@ export interface ReactionMap {
 }
 
 export enum ReactionChangeType {
-  COLLECT,
-  REMOVE,
+  COLLECT = 'COLLECT',
+  REMOVE = 'REMOVE',
 }
 
 export interface ReactionChange {
