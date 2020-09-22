@@ -98,14 +98,10 @@ export class ReactionsWatcherService {
       return of(false)
     }
 
-    const { bot } = this
-    const wrapper = MessageReactionWrapper.wrap(
-      message,
-      (r, u) => r.emoji.name === emoji && u.id !== bot.id
-    )
+    const wrapper = MessageReactionWrapper.wrap(message, emoji)
 
     // for logging
-    wrapper.change$.subscribe(({ userId, type, emoji }) => {
+    wrapper.changes$.subscribe(({ userId, type, emoji }) => {
       this.logger.silly(`Reaction changes detected.`, {
         userId,
         type,
@@ -118,10 +114,7 @@ export class ReactionsWatcherService {
 
     // this observable will emit if we've reache the amount of reactions that we need
     const reactionComplete$ = wrapper.reactions$.pipe(
-      filter(rm => {
-        const reactors = rm[emoji] || []
-        return reactors.filter(id => id !== bot.id).length === count
-      }),
+      filter(arr => arr.length === count),
       mapTo(true)
     )
 

@@ -4,58 +4,38 @@ import {
   Snowflake,
   MessageReaction,
   User,
-  ReactionCollectorOptions,
 } from 'discord.js'
-import { fromEvent, of, never, Observable, merge, from } from 'rxjs'
-import { takeUntil, map, mapTo, mergeMap } from 'rxjs/operators'
+import { fromEvent, of, Observable, merge, from, NEVER } from 'rxjs'
+import { takeUntil, map, mapTo, mergeMap, share, tap } from 'rxjs/operators'
 
 /**
  * This class' purpose is to wrap around the ReactionCollector class from `discord.js`
  * with `RxJS`.
  */
 export default class MessageReactionWrapper {
+  static wrap(message: Message, targetEmoji: string) {
+    return new MessageReactionWrapper(message, targetEmoji)
+  }
+
+  private reactions = new Set<string>()
+  private collector: ReactionCollector
+  private _changes$: Observable<ReactionChange>
+
   /**
-   * Given a message, a new reaction collector is spawned off it and that same reaction collector
-   * is then wrapped around with RxJS functionalities.
-   *
-   * This is similar to @see Message#createReactionCollector.
    *
    * @param message
-   * @param filter
-   * @param options
+   * @param targetEmoji Should be the unicode of a standard emoji. This is the emoji that we'll look out for.
    */
-  static wrap(
-    message: Message,
-    filter: MessageCollectionFilter = () => true,
-    options?: ReactionCollectorOptions
-  ): MessageReactionWrapper {
-    return new MessageReactionWrapper(message, filter, options)
+  private constructor(private message: Message, private targetEmoji: string) {
+    this.collector = message.createReactionCollector(
+      (r, u) => r.emoji.name === targetEmoji && u.id !== this.client.user.id
+    )
+
+    this._changes$ = this.createSharedChangesObservable()
   }
 
-  private collector: ReactionCollector
-
-  private constructor(
-    private message: Message,
-    filter: MessageCollectionFilter = () => true,
-    options?: ReactionCollectorOptions
-  ) {
-    this.collector = message.createReactionCollector(filter, options)
-  }
-
-  private get reactionCache() {
-    return this.message.reactions.cache
-  }
-
-  async getReactions(): Promise<ReactionMap> {
-    const reactions = [...this.reactionCache.values()]
-    const map: ReactionMap = {}
-    for (const reaction of reactions) {
-      const { users, emoji } = reaction
-      const fetched = await users.fetch()
-      map[emoji.name] = fetched.keyArray()
-    }
-
-    return map
+  private get client() {
+    return this.message.client
   }
 
   /**
@@ -68,6 +48,26 @@ export default class MessageReactionWrapper {
       return of(null).pipe(mapTo(undefined))
     }
     return fromEvent(collector, 'end').pipe(mapTo(undefined))
+  }
+
+  private async fetchReactionsFromServer() {
+    const { targetEmoji, message, client } = this
+    const reactions = message.reactions.cache
+    const messageReaction = reactions.find(r => r.emoji.name === targetEmoji)
+
+    // don't bother proceeding if no one has reacted using the target emoji yet
+    if (!messageReaction) {
+      return
+    }
+
+    /*
+     * Fetch the list of the users who reacted using the target emoji and
+     * extract their ids. Make sure to leave out the id of the bot.
+     */
+    await messageReaction.users.fetch()
+    messageReaction.users.cache
+      .filter(user => user.id !== client.user.id)
+      .forEach(user => this.reactions.add(user.id))
   }
 
   /**
@@ -92,12 +92,7 @@ export default class MessageReactionWrapper {
     }))
   }
 
-  /**
-   * Emits when a user added or removed a reaction from the message we're
-   * watching. The emission data will be about whodid the reaction/removal
-   * and which emoji was it.
-   */
-  get change$(): Observable<ReactionChange> {
+  private get collectionChange$() {
     const { collector } = this
 
     const collect$ = fromEvent(collector, 'collect').pipe(
@@ -107,32 +102,38 @@ export default class MessageReactionWrapper {
       this.generateMapOperator(ReactionChangeType.REMOVE)
     )
 
-    return merge(collect$, remove$).pipe(takeUntil(this.end$))
+    return merge(collect$, remove$)
+  }
+
+  private createSharedChangesObservable(): Observable<ReactionChange> {
+    const { collectionChange$, reactions, end$ } = this
+
+    return merge(NEVER, of(undefined)).pipe(
+      mergeMap(() => from(this.fetchReactionsFromServer())),
+      mergeMap(() => collectionChange$),
+      tap(change => {
+        if (change.type === ReactionChangeType.COLLECT) {
+          reactions.add(change.userId)
+        } else {
+          reactions.delete(change.userId)
+        }
+      }),
+      share(),
+      takeUntil(end$)
+    )
+  }
+
+  get changes$() {
+    return this._changes$
   }
 
   /**
    * @see change$
    * Similar to `change$`, but the emission are snapshots of the reaction state.
    */
-  get reactions$(): Observable<ReactionMap> {
-    const { collector } = this
-    if (collector.ended) {
-      return never()
-    }
-
-    return merge(
-      of(undefined),
-      fromEvent(collector, 'remove'),
-      fromEvent(collector, 'collect')
-    ).pipe(
-      takeUntil(this.end$),
-      mergeMap(() => from(this.getReactions()))
-    )
+  get reactions$(): Observable<string[]> {
+    return this.changes$.pipe(map(() => [...this.reactions]))
   }
-}
-
-export interface ReactionMap {
-  [key: string]: string[]
 }
 
 export enum ReactionChangeType {
@@ -145,5 +146,3 @@ export interface ReactionChange {
   emoji: Snowflake
   type: ReactionChangeType
 }
-
-export type MessageCollectionFilter = (r: MessageReaction, u: User) => boolean
