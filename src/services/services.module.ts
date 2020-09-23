@@ -4,14 +4,16 @@ import { ReactionsWatcherService } from './reactions-watcher/reactions-watcher.s
 import { RepositoriesModule } from 'src/repositories/repositories.module'
 import { MessageWatcherService } from './message-watcher/message-watcher.service'
 import { CommandParserService } from './command-parser/command-parser.service'
+import { ExecutorService } from './executor/executor.service'
 @Module({
   providers: [
     ReactionsWatcherService,
     MessageWatcherService,
     CommandParserService,
+    ExecutorService,
   ],
 
   imports: [ProvidersModule, RepositoriesModule],
-  exports: [ReactionsWatcherService, CommandParserService],
+  exports: [ReactionsWatcherService, CommandParserService, ExecutorService],
 })
 export class ServicesModule {}
