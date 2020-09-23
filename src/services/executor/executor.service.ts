@@ -1,17 +1,17 @@
 import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import {
-  from,
   GroupedObservable,
+  Observable,
   of,
   race,
   Subject,
-  SubscribableOrPromise,
   throwError,
   timer,
 } from 'rxjs'
 import {
   concatMap,
+  delay,
   filter,
   finalize,
   groupBy,
@@ -64,6 +64,7 @@ export class ExecutorService implements OnApplicationBootstrap {
     const { doing$, done$, timeout$ } = this
 
     return group$.pipe(
+      delay(100),
       concatMap(todo => {
         // emit the task in the doing subject to let the task know to start running
         doing$.next(todo)
@@ -83,7 +84,25 @@ export class ExecutorService implements OnApplicationBootstrap {
    * @param groupId
    * @param toExecute
    */
-  scheduleTask<T>(groupId: string, toExecute: SubscribableOrPromise<T>) {
+  executeAsyncFunction<T>(groupId: string, toExecute: () => Promise<T>) {
+    const obs$ = new Observable<T>(obs => {
+      toExecute()
+        .then(data => {
+          obs.next(data)
+          obs.complete()
+        })
+        .catch(e => obs.error(e))
+    })
+
+    return this.executeObservable(groupId, obs$)
+  }
+
+  /**
+   *
+   * @param groupId
+   * @param toExecute$
+   */
+  executeObservable<T>(groupId: string, toExecute$: Observable<T>) {
     const { todo$, doing$, done$, timeout$, logger } = this
 
     return of(undefined).pipe(
@@ -113,7 +132,7 @@ export class ExecutorService implements OnApplicationBootstrap {
       }),
       mergeMap(task => {
         return race(
-          from(toExecute).pipe(
+          toExecute$.pipe(
             // will finalize on success or if an error was thrown
             finalize(() => {
               done$.next(task)
@@ -132,7 +151,8 @@ export class ExecutorService implements OnApplicationBootstrap {
             mergeMap(() => throwError(new Error('TIMEOUT')))
           )
         )
-      })
+      }),
+      take(1)
     )
   }
 }
