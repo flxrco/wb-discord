@@ -5,8 +5,8 @@ import {
   MessageReaction,
   User,
 } from 'discord.js'
-import { fromEvent, of, Observable, merge, from, NEVER } from 'rxjs'
-import { takeUntil, map, mapTo, mergeMap, share, tap } from 'rxjs/operators'
+import { fromEvent, of, Observable, merge, NEVER, from } from 'rxjs'
+import { takeUntil, map, mapTo, mergeMap, shareReplay } from 'rxjs/operators'
 
 /**
  * This class' purpose is to wrap around the ReactionCollector class from `discord.js`
@@ -17,9 +17,8 @@ export default class MessageReactionWrapper {
     return new MessageReactionWrapper(message, targetEmoji)
   }
 
-  private reactions = new Set<string>()
   private collector: ReactionCollector
-  private _changes$: Observable<ReactionChange>
+  private fetched$: Observable<void>
 
   /**
    *
@@ -31,7 +30,7 @@ export default class MessageReactionWrapper {
       (r, u) => r.emoji.name === targetEmoji && u.id !== this.client.user.id
     )
 
-    this._changes$ = this.createSharedChangesObservable()
+    this.fetched$ = this.fetchReactions()
   }
 
   private get client() {
@@ -50,24 +49,36 @@ export default class MessageReactionWrapper {
     return fromEvent(collector, 'end').pipe(mapTo(undefined))
   }
 
-  private async fetchReactionsFromServer() {
+  private fetchReactions(): Observable<void> {
+    return merge(NEVER, of(undefined)).pipe(
+      mergeMap(() => from(this.getMessageReactions())),
+      mapTo(undefined),
+      shareReplay()
+    )
+  }
+
+  private async getMessageReactions(preventApiCall?: boolean) {
     const { targetEmoji, message, client } = this
     const reactions = message.reactions.cache
     const messageReaction = reactions.find(r => r.emoji.name === targetEmoji)
 
     // don't bother proceeding if no one has reacted using the target emoji yet
     if (!messageReaction) {
-      return
+      return []
     }
 
-    /*
-     * Fetch the list of the users who reacted using the target emoji and
-     * extract their ids. Make sure to leave out the id of the bot.
-     */
-    await messageReaction.users.fetch()
-    messageReaction.users.cache
+    if (!preventApiCall) {
+      /*
+       * Fetch the list of the users who reacted using the target emoji and
+       * extract their ids. Make sure to leave out the id of the bot.
+       */
+      await messageReaction.users.fetch()
+    }
+
+    return messageReaction.users.cache
       .filter(user => user.id !== client.user.id)
-      .forEach(user => this.reactions.add(user.id))
+      .mapValues(user => user.id)
+      .array()
   }
 
   /**
@@ -92,8 +103,11 @@ export default class MessageReactionWrapper {
     }))
   }
 
-  private get collectionChange$() {
-    const { collector } = this
+  /**
+   *
+   */
+  get changes$() {
+    const { collector, end$ } = this
 
     const collect$ = fromEvent(collector, 'collect').pipe(
       this.generateMapOperator(ReactionChangeType.COLLECT)
@@ -102,29 +116,10 @@ export default class MessageReactionWrapper {
       this.generateMapOperator(ReactionChangeType.REMOVE)
     )
 
-    return merge(collect$, remove$)
-  }
-
-  private createSharedChangesObservable(): Observable<ReactionChange> {
-    const { collectionChange$, reactions, end$ } = this
-
-    return merge(NEVER, of(undefined)).pipe(
-      mergeMap(() => from(this.fetchReactionsFromServer())),
-      mergeMap(() => collectionChange$),
-      tap(change => {
-        if (change.type === ReactionChangeType.COLLECT) {
-          reactions.add(change.userId)
-        } else {
-          reactions.delete(change.userId)
-        }
-      }),
-      share(),
+    return this.fetched$.pipe(
+      mergeMap(() => merge(collect$, remove$)),
       takeUntil(end$)
     )
-  }
-
-  get changes$() {
-    return this._changes$
   }
 
   /**
@@ -132,7 +127,16 @@ export default class MessageReactionWrapper {
    * Similar to `change$`, but the emission are snapshots of the reaction state.
    */
   get reactions$(): Observable<string[]> {
-    return this.changes$.pipe(map(() => [...this.reactions]))
+    const { collector, end$ } = this
+
+    return merge(
+      this.fetched$,
+      fromEvent(collector, 'collect'),
+      fromEvent(collector, 'remove')
+    ).pipe(
+      takeUntil(end$),
+      mergeMap(() => this.getMessageReactions(true))
+    )
   }
 }
 
