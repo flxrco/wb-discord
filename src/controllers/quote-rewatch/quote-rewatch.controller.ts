@@ -17,6 +17,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
 import _ = require('lodash')
 import moment = require('moment-timezone')
+import { ExecutorService } from 'src/services/executor/executor.service'
 
 const CONCURRENT_SERVERS = 3
 const CONCURRENT_CHANNELS_PER_SERVER = 3
@@ -28,6 +29,7 @@ export class QuoteRewatchController {
     private watchSvc: ReactionsWatcherService,
     private watchInt: QuoteWatchInteractor,
     private client: Client,
+    private executor: ExecutorService,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
     this.logger = logger.child({ context: 'QuoteRewatchController' })
@@ -140,9 +142,12 @@ export class QuoteRewatchController {
   }
 
   private async retreiveMessages(
-    { messages }: TextChannel,
+    channel: TextChannel,
     pendingQuotes: IPendingQuote[]
   ): Promise<MessageSearchResults> {
+    const EXECUTOR_GROUP = [channel.guild.id, channel.id].join('/')
+
+    const { messages } = channel
     const indexedByMsgId = _.keyBy(
       pendingQuotes,
       p => p.submissionStatus.messageId
@@ -159,10 +164,19 @@ export class QuoteRewatchController {
       const anchorId = indeterminateIds[0]
       try {
         // the message starting from the anchor to whatever discord allows us to query
-        const fetchResults = [
-          await messages.fetch(anchorId),
-          ...(await messages.fetch({ after: anchorId })).values(),
-        ]
+        const anchorResult = await this.executor
+          .executeAsyncFunction(
+            EXECUTOR_GROUP,
+            async () => await messages.fetch(anchorId)
+          )
+          .toPromise()
+        const anchorRange = await this.executor
+          .executeAsyncFunction(
+            EXECUTOR_GROUP,
+            async () => await messages.fetch({ after: anchorId })
+          )
+          .toPromise()
+        const fetchResults = [anchorResult, ...anchorRange.values()]
           // filter out the messages that we don't need -- those which are not for tracking approvals
           .filter(({ id }) => !!indexedByMsgId[id])
           // to be sure, sort them by creation/edit dates. this sequence is important later on.
