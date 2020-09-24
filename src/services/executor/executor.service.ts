@@ -22,6 +22,7 @@ import {
 } from 'rxjs/operators'
 import { Logger } from 'winston'
 import { v4 as uuid } from 'uuid'
+import SubExecutor from './sub-executor.class'
 
 const TASK_TIMEOUT = 1000 * 60 * 1
 
@@ -84,7 +85,7 @@ export class ExecutorService implements OnApplicationBootstrap {
    * @param groupId
    * @param toExecute
    */
-  executeAsyncFunction<T>(groupId: string, toExecute: () => Promise<T>) {
+  execute$<T>(groupId: string, toExecute: () => Promise<T>) {
     const obs$ = new Observable<T>(obs => {
       toExecute()
         .then(data => {
@@ -94,7 +95,11 @@ export class ExecutorService implements OnApplicationBootstrap {
         .catch(e => obs.error(e))
     })
 
-    return this.executeObservable(groupId, obs$)
+    return this.executeObservable$(groupId, obs$)
+  }
+
+  execute<T>(groupId: string, toExecute: () => Promise<T>) {
+    return this.execute$(groupId, toExecute).toPromise()
   }
 
   /**
@@ -102,7 +107,7 @@ export class ExecutorService implements OnApplicationBootstrap {
    * @param groupId
    * @param toExecute$
    */
-  executeObservable<T>(groupId: string, toExecute$: Observable<T>) {
+  executeObservable$<T>(groupId: string, toExecute$: Observable<T>) {
     const { todo$, doing$, done$, timeout$, logger } = this
 
     return of(undefined).pipe(
@@ -154,6 +159,19 @@ export class ExecutorService implements OnApplicationBootstrap {
       }),
       take(1)
     )
+  }
+
+  /**
+   *
+   * @param groupId
+   * @param toExecute$
+   */
+  executeObservable<T>(groupId: string, toExecute$: Observable<T>) {
+    return this.executeObservable$(groupId, toExecute$).toPromise()
+  }
+
+  child(groupId: string) {
+    return new SubExecutor(this, groupId)
   }
 }
 

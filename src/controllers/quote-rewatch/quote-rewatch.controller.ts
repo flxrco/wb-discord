@@ -146,6 +146,7 @@ export class QuoteRewatchController {
     pendingQuotes: IPendingQuote[]
   ): Promise<MessageSearchResults> {
     const EXECUTOR_GROUP = [channel.guild.id, channel.id].join('/')
+    const executor = this.executor.child(EXECUTOR_GROUP)
 
     const { messages } = channel
     const indexedByMsgId = _.keyBy(
@@ -164,19 +165,14 @@ export class QuoteRewatchController {
       const anchorId = indeterminateIds[0]
       try {
         // the message starting from the anchor to whatever discord allows us to query
-        const anchorResult = await this.executor
-          .executeAsyncFunction(
-            EXECUTOR_GROUP,
-            async () => await messages.fetch(anchorId)
-          )
-          .toPromise()
-        const anchorRange = await this.executor
-          .executeAsyncFunction(
-            EXECUTOR_GROUP,
-            async () => await messages.fetch({ after: anchorId })
-          )
-          .toPromise()
-        const fetchResults = [anchorResult, ...anchorRange.values()]
+        const anchorResult = await executor.execute(() =>
+          messages.fetch(anchorId)
+        )
+        const anchorRange = await executor.execute(() =>
+          messages.fetch({ after: anchorId })
+        )
+
+        const fetchResults = [anchorResult, ...anchorRange.array()]
           // filter out the messages that we don't need -- those which are not for tracking approvals
           .filter(({ id }) => !!indexedByMsgId[id])
           // to be sure, sort them by creation/edit dates. this sequence is important later on.
