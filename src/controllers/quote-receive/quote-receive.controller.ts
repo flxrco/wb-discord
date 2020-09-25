@@ -56,6 +56,7 @@ export class QuoteReceiveController {
   }
 
   private async handler({ message, authorId }: IReceiveHandlerParams) {
+    await message.react('👀')
     const reply = await message.channel.send('🤔')
 
     try {

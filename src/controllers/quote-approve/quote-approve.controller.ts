@@ -24,7 +24,7 @@ export class QuoteApproveController {
 
   private generateQuoteApprovalText(quote: IQuote) {
     const year = quote.yearOverride || moment(quote.submitDt).get('year')
-    const quoteLine = `**"${quote.content}"** <@${quote.authorId}>, ${year}`
+    const quoteLine = `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
     const acceptLine = `<@${quote.submitterId}>, your submission has been accepted.`
 
     return [quoteLine, acceptLine].join('\n')

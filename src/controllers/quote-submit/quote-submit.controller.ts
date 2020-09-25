@@ -73,7 +73,7 @@ export class QuoteSubmitController {
     )
 
     const quoteLine = `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
-    const instructionsLine = `_This submission needs ${count} ${emoji} to get reactions on or before *${expireDt}*._`
+    const instructionsLine = `_This submission needs ${count} ${emoji} reacts to get reactions on or before *${expireDt}*._`
 
     return [quoteLine, instructionsLine].join('\n')
   }
@@ -120,6 +120,7 @@ export class QuoteSubmitController {
    * @param submissionParams The parsed parameters of the command.
    */
   async handler(params: ISubmitHandlerParams): Promise<void> {
+    await params.message.react('👀')
     const { message } = params
     // send the initial reply -- this indicates that the bot is loading
     const reply = await message.channel.send('🤔')
