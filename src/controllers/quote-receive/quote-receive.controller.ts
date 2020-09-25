@@ -4,15 +4,16 @@ import { filter, map } from 'rxjs/operators'
 import QuoteReceiveInteractor, {
   IRecieveQuoteOutput,
 } from 'src/common/classes/interactors/quote-receive-interactor.class'
-import { CommandParserService } from 'src/services/command-parser/command-parser.service'
-import { isDeepStrictEqual } from 'util'
 import moment = require('moment-timezone')
 import { Observable } from 'rxjs'
+import CommandService, {
+  Command,
+} from 'src/common/classes/services/command-service.class'
 
 @Controller()
 export class QuoteReceiveController {
   constructor(
-    private cmdSvc: CommandParserService,
+    private cmdSvc: CommandService,
     private receiveInt: QuoteReceiveInteractor
   ) {
     this.recieved$.subscribe(this.handler.bind(this))
@@ -22,7 +23,7 @@ export class QuoteReceiveController {
 
   private get recieved$(): Observable<IReceiveHandlerParams> {
     return this.cmdSvc.getOnParseObservable<IReceiveCommandParams>().pipe(
-      filter(({ commands }) => isDeepStrictEqual(commands, ['receive'])),
+      filter(({ command }) => command === Command.RECEIVE_QUOTE),
       map(({ message, params }) => {
         // if the optional author param was not filled up, no need for additional handling
         if (!params.author) {

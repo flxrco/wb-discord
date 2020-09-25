@@ -4,10 +4,13 @@ import {
   ICommandMessage,
 } from '../message-watcher/message-watcher.service'
 import yargs = require('yargs')
-import { Subject, Observable } from 'rxjs'
-import { Message } from 'discord.js'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
+import CommandService, {
+  Command,
+} from 'src/common/classes/services/command-service.class'
+
+import { isDeepStrictEqual } from 'util'
 
 // TODO stick this up in a provider or something, jesus
 const YARGS_INSTANCE = yargs
@@ -46,22 +49,46 @@ const YARGS_INSTANCE = yargs
   .version(false)
   .strict(true)
 
+interface YargsMapping {
+  command: Command
+  yargsPath: string[]
+}
+
+const YARGS_MAPPING: YargsMapping[] = [
+  {
+    command: Command.RECEIVE_QUOTE,
+    yargsPath: ['receive'],
+  },
+  {
+    command: Command.SUBMIT_QUOTE,
+    yargsPath: ['add'],
+  },
+  {
+    command: Command.SUBMIT_QUOTE,
+    yargsPath: ['submit'],
+  },
+]
+
 @Injectable()
-export class CommandParserService {
+export class CommandParserService extends CommandService {
   private logger: Logger
 
   constructor(
     messageSvc: MessageWatcherService,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
+    super()
     this.logger = logger.child({ context: 'CommandParserService' })
     messageSvc.prefixedMessage$.subscribe(this.onCommand.bind(this))
   }
 
-  // successful parses
-  private eventBus = new Subject<IParseResults>()
-  // erroneous parses
-  private errorBus = new Subject<IParseError>()
+  private yargsPathToCommand(argv: yargs.Arguments): Command {
+    const path = argv._
+
+    return YARGS_MAPPING.find(({ yargsPath }) =>
+      isDeepStrictEqual(path, yargsPath)
+    ).command
+  }
 
   private onCommand({ command, message }: ICommandMessage) {
     YARGS_INSTANCE.parse(command, {}, (error, argv) => {
@@ -73,40 +100,16 @@ export class CommandParserService {
         return
       }
 
+      // extract the command params
       const shallowClone = { ...argv }
       delete shallowClone._
       delete shallowClone.$0
 
-      const parsed: IParseResults = {
-        commands: argv._,
+      this.eventBus.next({
+        command: this.yargsPathToCommand(argv),
         params: shallowClone,
         message,
-      }
-
-      this.eventBus.next(parsed)
+      })
     })
   }
-
-  get parsed$() {
-    return this.eventBus.asObservable()
-  }
-
-  get error$() {
-    return this.errorBus.asObservable()
-  }
-
-  getOnParseObservable<T>() {
-    return this.parsed$ as Observable<IParseResults<T>>
-  }
-}
-
-export interface IParseResults<T = any> {
-  commands: string[]
-  params: T
-  message: Message
-}
-
-export interface IParseError {
-  error: Error
-  message: Message
 }

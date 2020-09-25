@@ -5,15 +5,19 @@ import { RepositoriesModule } from 'src/repositories/repositories.module'
 import { MessageWatcherService } from './message-watcher/message-watcher.service'
 import { CommandParserService } from './command-parser/command-parser.service'
 import { ExecutorService } from './executor/executor.service'
+import CommandService from 'src/common/classes/services/command-service.class'
 @Module({
   providers: [
     ReactionsWatcherService,
     MessageWatcherService,
-    CommandParserService,
+    {
+      useClass: CommandParserService,
+      provide: CommandService,
+    },
     ExecutorService,
   ],
 
   imports: [ProvidersModule, RepositoriesModule],
-  exports: [ReactionsWatcherService, CommandParserService, ExecutorService],
+  exports: [ReactionsWatcherService, CommandService, ExecutorService],
 })
 export class ServicesModule {}

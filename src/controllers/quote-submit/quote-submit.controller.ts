@@ -2,8 +2,6 @@ import { Controller, Inject } from '@nestjs/common'
 import { Message } from 'discord.js'
 import moment = require('moment-timezone')
 import { ReactionsWatcherService } from 'src/services/reactions-watcher/reactions-watcher.service'
-import { CommandParserService } from 'src/services/command-parser/command-parser.service'
-import { isDeepStrictEqual } from 'util'
 import { filter, map } from 'rxjs/operators'
 import ApprovalRequirementsRepository from 'src/common/classes/repositories/approval-requirements-repository.class'
 import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
@@ -11,6 +9,9 @@ import IApprovalRequirements from 'src/common/interfaces/models/approval-require
 import QuoteSubmitInteractor from 'src/common/classes/interactors/quote-submit-interactor.class'
 import { Logger } from 'winston'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
+import CommandService, {
+  Command,
+} from 'src/common/classes/services/command-service.class'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
@@ -20,7 +21,7 @@ export class QuoteSubmitController {
   constructor(
     private submitInt: QuoteSubmitInteractor,
     private watcherSvc: ReactionsWatcherService,
-    private parserSvc: CommandParserService,
+    private parserSvc: CommandService,
     private reqRepo: ApprovalRequirementsRepository,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
@@ -32,11 +33,7 @@ export class QuoteSubmitController {
 
   private get submitted$() {
     return this.parserSvc.getOnParseObservable<ISubmitCommandParams>().pipe(
-      filter(
-        ({ commands }) =>
-          isDeepStrictEqual(commands, ['submit']) ||
-          isDeepStrictEqual(commands, ['add'])
-      ),
+      filter(({ command }) => command === Command.SUBMIT_QUOTE),
       filter(({ message, params }) => {
         if (!QuoteSubmitController.USER_MENTION_PATTERN.test(params.author)) {
           return false
