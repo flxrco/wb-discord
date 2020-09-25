@@ -9,9 +9,9 @@ import IApprovalRequirements from 'src/common/interfaces/models/approval-require
 import QuoteSubmitInteractor from 'src/common/classes/interactors/quote-submit-interactor.class'
 import { Logger } from 'winston'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
-import CommandService, {
+import CommandParser, {
   Command,
-} from 'src/common/classes/services/command-service.class'
+} from 'src/common/classes/services/command-parser.class'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
@@ -21,7 +21,7 @@ export class QuoteSubmitController {
   constructor(
     private submitInt: QuoteSubmitInteractor,
     private watcherSvc: ReactionsWatcherService,
-    private parserSvc: CommandService,
+    private parserSvc: CommandParser,
     private reqRepo: ApprovalRequirementsRepository,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {

@@ -6,14 +6,14 @@ import QuoteReceiveInteractor, {
 } from 'src/common/classes/interactors/quote-receive-interactor.class'
 import moment = require('moment-timezone')
 import { Observable } from 'rxjs'
-import CommandService, {
+import CommandParser, {
   Command,
-} from 'src/common/classes/services/command-service.class'
+} from 'src/common/classes/services/command-parser.class'
 
 @Controller()
 export class QuoteReceiveController {
   constructor(
-    private cmdSvc: CommandService,
+    private cmdSvc: CommandParser,
     private receiveInt: QuoteReceiveInteractor
   ) {
     this.recieved$.subscribe(this.handler.bind(this))

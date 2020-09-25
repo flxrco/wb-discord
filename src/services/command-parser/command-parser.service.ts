@@ -6,9 +6,9 @@ import {
 import yargs = require('yargs')
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
-import CommandService, {
+import CommandParser, {
   Command,
-} from 'src/common/classes/services/command-service.class'
+} from 'src/common/classes/services/command-parser.class'
 
 import { isDeepStrictEqual } from 'util'
 
@@ -70,7 +70,7 @@ const YARGS_MAPPING: YargsMapping[] = [
 ]
 
 @Injectable()
-export class CommandParserService extends CommandService {
+export class CommandParserService extends CommandParser {
   private logger: Logger
 
   constructor(

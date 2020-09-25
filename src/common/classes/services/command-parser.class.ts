@@ -1,7 +1,7 @@
 import { Message } from 'discord.js'
 import { Observable, Subject } from 'rxjs'
 
-export default abstract class CommandService {
+export default abstract class CommandParser {
   // successful parses
   protected eventBus = new Subject<IParseResults>()
   // erroneous parses
