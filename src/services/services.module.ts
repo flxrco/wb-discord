@@ -6,6 +6,7 @@ import { MessageWatcherService } from './message-watcher/message-watcher.service
 import { CommandParserService } from './command-parser/command-parser.service'
 import { ExecutorService } from './executor/executor.service'
 import CommandParser from 'src/common/classes/services/command-parser.class'
+import YargsProvider from './command-parser/yargs.provider'
 @Module({
   providers: [
     ReactionsWatcherService,
@@ -15,6 +16,7 @@ import CommandParser from 'src/common/classes/services/command-parser.class'
       provide: CommandParser,
     },
     ExecutorService,
+    YargsProvider,
   ],
 
   imports: [ProvidersModule, RepositoriesModule],

@@ -3,51 +3,13 @@ import {
   MessageWatcherService,
   ICommandMessage,
 } from '../message-watcher/message-watcher.service'
-import yargs = require('yargs')
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
 import CommandParser, {
   Command,
 } from 'src/common/classes/services/command-parser.class'
-
-import { isDeepStrictEqual } from 'util'
-
-// TODO stick this up in a provider or something, jesus
-const YARGS_INSTANCE = yargs
-  .command(
-    ['submit <content> <author> [year]', 'add'],
-    'Submit a quote for approval.',
-    yargs => {
-      yargs
-        .positional('content', { describe: 'The content of the quote.' })
-        .positional('author', {
-          describe:
-            'The author of the quote. Can be a mention (e.g. @Wisdom) or a plain string (e.g. "Socrates").',
-        })
-        .positional('year', {
-          describe:
-            'Overrides the year of the quote. If no value was provided, the quote year will be the current year.',
-          type: 'number',
-        })
-        .help()
-    }
-  )
-  .command(
-    'receive [author]',
-    'Fetches a random quote from the database.',
-    yargs => {
-      yargs
-        .positional('author', {
-          description:
-            'Must be a mention to a user. If a value was provided, then the quote to be received will be filtered to the ones from the author.',
-        })
-        .help()
-    }
-  )
-  .help()
-  .wrap(null)
-  .version(false)
-  .strict(true)
+import { YARGS_PROVIDER } from './yargs.provider'
+import yargs from 'yargs'
 
 interface YargsMapping {
   command: Command
@@ -75,7 +37,8 @@ export class CommandParserService extends CommandParser {
 
   constructor(
     messageSvc: MessageWatcherService,
-    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
+    @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
+    @Inject(YARGS_PROVIDER) private yargs: yargs.Argv
   ) {
     super()
     this.logger = logger.child({ context: 'CommandParserService' })
@@ -83,15 +46,15 @@ export class CommandParserService extends CommandParser {
   }
 
   private yargsPathToCommand(argv: yargs.Arguments): Command {
-    const path = argv._
+    const serializedPath = argv._.join('/')
 
-    return YARGS_MAPPING.find(({ yargsPath }) =>
-      isDeepStrictEqual(path, yargsPath)
+    return YARGS_MAPPING.find(
+      ({ yargsPath }) => serializedPath === yargsPath.join('/')
     ).command
   }
 
   private onCommand({ command, message }: ICommandMessage) {
-    YARGS_INSTANCE.parse(command, {}, (error, argv) => {
+    this.yargs.parse(command, {}, (error, argv) => {
       if (error) {
         this.errorBus.next({
           error,

@@ -6,7 +6,7 @@ import { mergeMap, map, filter, tap } from 'rxjs/operators'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
 
-const COMMAND_REGEXP = /(\S+)\s*(.*$)/
+const COMMAND_REGEXP = /(\S+)\s*(.*$)\s*/
 
 @Injectable()
 export class MessageWatcherService {
