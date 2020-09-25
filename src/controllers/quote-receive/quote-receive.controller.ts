@@ -52,7 +52,7 @@ export class QuoteReceiveController {
 
   private formatMessage({ quote }: IRecieveQuoteOutput) {
     const year = quote.yearOverride || moment(quote.submitDt).get('year')
-    return `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
+    return `**"${quote.content}"** - Jolo Morales, ${year}`
   }
 
   private async handler({ message, authorId }: IReceiveHandlerParams) {

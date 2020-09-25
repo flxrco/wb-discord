@@ -72,7 +72,7 @@ export class QuoteSubmitController {
       'MMMM D, YYYY h:mm:ss a'
     )
 
-    const quoteLine = `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
+    const quoteLine = `**"${quote.content}"** - Jolo Morales, ${year}`
     const instructionsLine = `_This submission needs ${count} ${emoji} reacts to get reactions on or before *${expireDt}*._`
 
     return [quoteLine, instructionsLine].join('\n')

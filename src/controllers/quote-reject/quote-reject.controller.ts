@@ -21,7 +21,7 @@ export class QuoteRejectController {
 
   private generateQuoteApprovalText(quote: IQuote) {
     const year = quote.yearOverride || moment(quote.submitDt).get('year')
-    const quoteLine = `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
+    const quoteLine = `**"${quote.content}"** - Jolo Morales, ${year}`
     const rejectLine = `<@${quote.submitterId}>, your submission did not reach the requirements in time is therefore rejected.`
 
     return [quoteLine, rejectLine].join('\n')
