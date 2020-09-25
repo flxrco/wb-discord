@@ -24,29 +24,35 @@ export class QuoteReceiveController {
   private get recieved$(): Observable<IReceiveHandlerParams> {
     return this.cmdSvc.getOnParseObservable<IReceiveCommandParams>().pipe(
       filter(({ command }) => command === Command.RECEIVE_QUOTE),
+      // map(({ message, params }) => {
+      //   // if the optional author param was not filled up, no need for additional handling
+      //   if (!params.author) {
+      //     return { message }
+      //   }
+
+      //   const regexp = QuoteReceiveController.USER_MENTION_PATTERN
+
+      //   if (!regexp.test(params.author)) {
+      //     return null
+      //   }
+
+      //   const [snowflake] = regexp.exec(params.author).slice(1)
+      //   if (!message.mentions.users.has(snowflake)) {
+      //     return null
+      //   }
+
+      //   return {
+      //     message,
+      //     authorId: snowflake,
+      //   }
+      // }),
+      // filter(data => !!data)
       map(({ message, params }) => {
-        // if the optional author param was not filled up, no need for additional handling
-        if (!params.author) {
-          return { message }
-        }
-
-        const regexp = QuoteReceiveController.USER_MENTION_PATTERN
-
-        if (!regexp.test(params.author)) {
-          return null
-        }
-
-        const [snowflake] = regexp.exec(params.author).slice(1)
-        if (!message.mentions.users.has(snowflake)) {
-          return null
-        }
-
         return {
           message,
-          authorId: snowflake,
+          authorId: params.author,
         }
-      }),
-      filter(data => !!data)
+      })
     )
   }
 

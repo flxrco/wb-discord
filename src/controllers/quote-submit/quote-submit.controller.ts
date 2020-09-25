@@ -34,21 +34,22 @@ export class QuoteSubmitController {
   private get submitted$() {
     return this.parserSvc.getOnParseObservable<ISubmitCommandParams>().pipe(
       filter(({ command }) => command === Command.SUBMIT_QUOTE),
-      filter(({ message, params }) => {
-        if (!QuoteSubmitController.USER_MENTION_PATTERN.test(params.author)) {
-          return false
-        }
+      // filter(({ message, params }) => {
+      //   if (!QuoteSubmitController.USER_MENTION_PATTERN.test(params.author)) {
+      //     return false
+      //   }
 
-        const snowflake = QuoteSubmitController.USER_MENTION_PATTERN.exec(
-          params.author
-        )[1]
+      //   const snowflake = QuoteSubmitController.USER_MENTION_PATTERN.exec(
+      //     params.author
+      //   )[1]
 
-        return message.mentions.users.has(snowflake)
-      }),
+      //   return message.mentions.users.has(snowflake)
+      // }),
       map(
         ({ message, params }) =>
           ({
             message,
+            author: params.author,
             content: params.content,
             yearOverride: params.year,
           } as ISubmitHandlerParams)
@@ -86,17 +87,22 @@ export class QuoteSubmitController {
    *    the user's `submissionMessage`.
    */
   private async submitToCoreMicroservice(
-    { content, yearOverride, message, requirements }: ISubmitHandlerParams,
+    {
+      content,
+      yearOverride,
+      message,
+      requirements,
+      author,
+    }: ISubmitHandlerParams,
     replyMessage: Message
   ) {
     const submitter = message.author
-    const author = message.mentions.users.first()
     const { channel, guild } = message
 
     const now = moment()
     // this does the actual call to the core microservice
     return await this.submitInt.submitQuote({
-      authorId: author.id,
+      authorId: author,
       submitterId: submitter.id,
       submitDt: now.toDate(),
       // for now, expiration date will always be 7 days from the submission date
@@ -167,6 +173,7 @@ export class QuoteSubmitController {
 
 interface ISubmitHandlerParams {
   content: string
+  author: string
   yearOverride?: number
   message: Message
   requirements: IApprovalRequirements
