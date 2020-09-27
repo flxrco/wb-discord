@@ -94,19 +94,18 @@ export class QuoteSubmitController {
    *    the user's `submissionMessage`.
    */
   private async submitToCoreMicroservice(
-    { content, yearOverride, message }: ISubmitHandlerParams,
+    { content, yearOverride, message, authorId }: ISubmitHandlerParams,
     requirements: IApprovalRequirements,
     replyMessage: Message
   ) {
-    const submitter = message.author
-    const author = message.mentions.users.first()
+    const submitterId = message.author.id
     const { channel, guild } = message
 
     const now = moment()
     // this does the actual call to the core microservice
     return await this.submitInt.submitQuote({
-      authorId: author.id,
-      submitterId: submitter.id,
+      authorId,
+      submitterId,
       submitDt: now.toDate(),
       // for now, expiration date will always be 7 days from the submission date
       expireDt: now.add(7, 'days').toDate(),
