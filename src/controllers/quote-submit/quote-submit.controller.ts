@@ -5,13 +5,14 @@ import { ReactionsWatcherService } from 'src/services/reactions-watcher/reaction
 import { filter, map } from 'rxjs/operators'
 import ApprovalRequirementsRepository from 'src/common/classes/repositories/approval-requirements-repository.class'
 import { IPendingQuote } from 'src/common/classes/interactors/quote-watch-interactor.class'
-import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
 import QuoteSubmitInteractor from 'src/common/classes/interactors/quote-submit-interactor.class'
 import { Logger } from 'winston'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import CommandParser, {
   Command,
 } from 'src/common/classes/services/command-parser.class'
+import MentionUtils from 'src/utils/mention-utils.class'
+import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
@@ -29,31 +30,38 @@ export class QuoteSubmitController {
     this.submitted$.subscribe(this.handler.bind(this))
   }
 
-  static readonly USER_MENTION_PATTERN = /^<@!?(\d{17,19})>$/
-
+  /**
+   * Listens for quote submission commands from the command event bus and
+   * maps it to a format consumable by the handler.
+   */
   private get submitted$() {
     return this.parserSvc.getOnParseObservable<ISubmitCommandParams>().pipe(
       filter(({ command }) => command === Command.SUBMIT_QUOTE),
-      filter(({ message, params }) => {
-        if (!QuoteSubmitController.USER_MENTION_PATTERN.test(params.author)) {
-          return false
-        }
-
-        const snowflake = QuoteSubmitController.USER_MENTION_PATTERN.exec(
-          params.author
-        )[1]
-
-        return message.mentions.users.has(snowflake)
-      }),
-      map(
-        ({ message, params }) =>
-          ({
-            message,
-            content: params.content,
-            yearOverride: params.year,
-          } as ISubmitHandlerParams)
-      )
+      // check if the content has no user mentions in it
+      filter(({ params }) => !MentionUtils.hasUserMention(params.content)),
+      // check if the author section is an actual discord mention
+      filter(
+        ({ params, message }) =>
+          MentionUtils.isUserMention(params.author) &&
+          message.mentions.users.has(
+            MentionUtils.extractUserSnowflake(params.author)
+          )
+      ),
+      // finally, transform the input for consumption of the handler
+      map(({ message, params }) => {
+        const { content, author, year } = params
+        return {
+          content,
+          message,
+          authorId: MentionUtils.extractUserSnowflake(author),
+          yearOverride: year,
+        } as ISubmitHandlerParams
+      })
     )
+  }
+
+  private async fetchSubmissionRequirements({ message }: ISubmitHandlerParams) {
+    return this.reqRepo.getRequirements(message.guild.id, message.channel.id)
   }
 
   /**
@@ -86,7 +94,8 @@ export class QuoteSubmitController {
    *    the user's `submissionMessage`.
    */
   private async submitToCoreMicroservice(
-    { content, yearOverride, message, requirements }: ISubmitHandlerParams,
+    { content, yearOverride, message }: ISubmitHandlerParams,
+    requirements: IApprovalRequirements,
     replyMessage: Message
   ) {
     const submitter = message.author
@@ -125,25 +134,20 @@ export class QuoteSubmitController {
     // send the initial reply -- this indicates that the bot is loading
     const reply = await message.channel.send('🤔')
 
-    // fetch the requiremetns for that server
-    const emojiReqs = await this.reqRepo.getRequirements(
-      message.guild.id,
-      message.channel.id
-    )
+    // fetch the requirements for that server
+    const emojiReqs = await this.fetchSubmissionRequirements(params)
 
     try {
       // perist the quote to the core microservice
       const submitted = await this.submitToCoreMicroservice(
-        {
-          ...params,
-          requirements: emojiReqs,
-        },
+        params,
+        emojiReqs,
         reply
       )
 
       // send the reply to the user that acknowledges that the quote has been received by the server
       await reply.edit(this.generateSubmitQuoteSuccessReply(submitted))
-
+      // react with the requried emoji so the users can just click on it
       await reply.react(emojiReqs.emoji)
 
       /*
@@ -169,7 +173,7 @@ interface ISubmitHandlerParams {
   content: string
   yearOverride?: number
   message: Message
-  requirements: IApprovalRequirements
+  authorId: string
 }
 
 interface ISubmitCommandParams {
