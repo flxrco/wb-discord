@@ -27,14 +27,12 @@ export class QuoteReceiveController {
       filter(({ params, message }) => {
         const { author } = params
 
-        // the author param is optional, so if its not provided there's no need to validate it
-        if (!author) {
-          return true
-        }
-
         return (
-          MentionUtils.isUserMention(author) &&
-          message.mentions.users.has(MentionUtils.extractUserSnowflake(author))
+          !author ||
+          (MentionUtils.isUserMention(author) &&
+            message.mentions.users.has(
+              MentionUtils.extractUserSnowflake(author)
+            ))
         )
       }),
       // transform the data into something that the handler can digest
