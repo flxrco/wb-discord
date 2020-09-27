@@ -13,6 +13,7 @@ import CommandParser, {
 } from 'src/common/classes/services/command-parser.class'
 import MentionUtils from 'src/utils/mention-utils.class'
 import IApprovalRequirements from 'src/common/interfaces/models/approval-requirements.interface'
+import QuoteEpxirationRepository from 'src/common/classes/repositories/quote-expiration-repository.class'
 
 // this controller tag is just to include the class in Nest.js' dependency tree
 @Controller()
@@ -24,6 +25,7 @@ export class QuoteSubmitController {
     private watcherSvc: ReactionsWatcherService,
     private parserSvc: CommandParser,
     private reqRepo: ApprovalRequirementsRepository,
+    private expirationRepo: QuoteEpxirationRepository,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger
   ) {
     this.logger = logger.child({ context: 'QuoteSubmitController' })
@@ -101,14 +103,16 @@ export class QuoteSubmitController {
     const submitterId = message.author.id
     const { channel, guild } = message
 
-    const now = moment()
     // this does the actual call to the core microservice
     return await this.submitInt.submitQuote({
       authorId,
       submitterId,
-      submitDt: now.toDate(),
+      submitDt: moment().toDate(),
       // for now, expiration date will always be 7 days from the submission date
-      expireDt: now.add(7, 'days').toDate(),
+      expireDt: await this.expirationRepo.computeExpirationDate(
+        guild.id,
+        channel.id
+      ),
       channelId: channel.id,
       messageId: replyMessage.id,
       serverId: guild.id,
