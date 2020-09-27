@@ -33,6 +33,11 @@ export class QuoteApproveController {
   async handler(message: Message, quote: IQuote) {
     this.logger.info(`Quote ${quote.quoteId} has been accepted.`)
     await this.watchInt.approveByMessageId(message.id)
-    await message.edit(this.generateQuoteApprovalText(quote))
+
+    await message.delete()
+
+    // send then edit when tagging users to make the pings silent
+    const notif = await message.channel.send('🤔')
+    await notif.edit(this.generateQuoteApprovalText(quote))
   }
 }

@@ -28,7 +28,12 @@ export class QuoteRejectController {
   }
 
   async handler(message: Message, quote: IQuote) {
-    await message.edit(this.generateQuoteApprovalText(quote))
     this.logger.info(`Quote ${quote.quoteId} has expired.`)
+
+    await message.delete()
+
+    // tag users on edit to make the pings silent
+    const notif = await message.channel.send('🤔')
+    await notif.edit(this.generateQuoteApprovalText(quote))
   }
 }
