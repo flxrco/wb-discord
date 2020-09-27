@@ -9,6 +9,7 @@ import { Observable } from 'rxjs'
 import CommandParser, {
   Command,
 } from 'src/common/classes/services/command-parser.class'
+import MentionUtils from 'src/utils/mention-utils.class'
 
 @Controller()
 export class QuoteReceiveController {
@@ -19,31 +20,29 @@ export class QuoteReceiveController {
     this.recieved$.subscribe(this.handler.bind(this))
   }
 
-  static readonly USER_MENTION_PATTERN = /^<@!?(\d{17,19})>$/
-
   private get recieved$(): Observable<IReceiveHandlerParams> {
     return this.cmdSvc.getOnParseObservable<IReceiveCommandParams>().pipe(
       filter(({ command }) => command === Command.RECEIVE_QUOTE),
+      // validation for the author param
+      filter(({ params, message }) => {
+        const { author } = params
+
+        // the author param is optional, so if its not provided there's no need to validate it
+        if (!author) {
+          return true
+        }
+
+        return (
+          MentionUtils.isUserMention(author) &&
+          message.mentions.users.has(MentionUtils.extractUserSnowflake(author))
+        )
+      }),
+      // transform the data into something that the handler can digest
       map(({ message, params }) => {
-        // if the optional author param was not filled up, no need for additional handling
-        if (!params.author) {
-          return { message }
-        }
-
-        const regexp = QuoteReceiveController.USER_MENTION_PATTERN
-
-        if (!regexp.test(params.author)) {
-          return null
-        }
-
-        const [snowflake] = regexp.exec(params.author).slice(1)
-        if (!message.mentions.users.has(snowflake)) {
-          return null
-        }
-
+        const { author } = params
         return {
           message,
-          authorId: snowflake,
+          authorId: author && MentionUtils.extractUserSnowflake(author),
         }
       }),
       filter(data => !!data)
