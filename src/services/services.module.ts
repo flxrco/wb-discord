@@ -3,8 +3,8 @@ import { ProvidersModule } from 'src/providers/providers.module'
 import { ReactionsWatcherService } from './reactions-watcher/reactions-watcher.service'
 import { RepositoriesModule } from 'src/repositories/repositories.module'
 import { MessageWatcherService } from './message-watcher/message-watcher.service'
-import { CommandParserService } from './command-parser/command-parser.service'
 import { ExecutorService } from './executor/executor.service'
+import { JoloCommandParserService } from './jolo-command-parser/jolo-command-parser.service'
 import CommandParser from 'src/common/classes/services/command-parser.class'
 import YargsProvider from './command-parser/yargs.provider'
 @Module({
@@ -12,7 +12,7 @@ import YargsProvider from './command-parser/yargs.provider'
     ReactionsWatcherService,
     MessageWatcherService,
     {
-      useClass: CommandParserService,
+      useClass: JoloCommandParserService,
       provide: CommandParser,
     },
     ExecutorService,
