@@ -22,7 +22,7 @@ export default abstract class CommandParser {
 
 export interface IParseResults<T = any> {
   command: Command
-  params: T
+  params?: T
   message: Message
 }
 
