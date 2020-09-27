@@ -28,9 +28,7 @@ export class QuoteRejectController {
   }
 
   async handler(message: Message, quote: IQuote) {
-    const { channel } = message
-    await message.delete({ reason: 'Submission was rejected.' })
-    await channel.send(this.generateQuoteApprovalText(quote))
+    await message.edit(this.generateQuoteApprovalText(quote))
     this.logger.info(`Quote ${quote.quoteId} has expired.`)
   }
 }

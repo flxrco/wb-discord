@@ -32,9 +32,7 @@ export class QuoteApproveController {
 
   async handler(message: Message, quote: IQuote) {
     this.logger.info(`Quote ${quote.quoteId} has been accepted.`)
-    const { channel } = message
     await this.watchInt.approveByMessageId(message.id)
-    await message.delete({ reason: 'Quote got accepted.' })
-    await channel.send(this.generateQuoteApprovalText(quote))
+    await message.edit(this.generateQuoteApprovalText(quote))
   }
 }
