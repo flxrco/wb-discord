@@ -10,7 +10,7 @@ export class MockApprovalRequirementsRepositoryService extends ApprovalRequireme
     channelId: string
   ): Promise<IApprovalRequirements> {
     return {
-      count: 1,
+      count: 3,
       emoji: '🤔',
     }
   }
