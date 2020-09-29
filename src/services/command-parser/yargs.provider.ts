@@ -32,6 +32,9 @@ const YARGS_INSTANCE = yargs
           description:
             'Must be a mention to a user. If a value was provided, then the quote to be received will be filtered to the ones from the author.',
         })
+        .option('exclude', {
+          boolean: true,
+        })
         .help()
     }
   )

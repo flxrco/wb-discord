@@ -10,7 +10,8 @@ export interface IReceiveQuoteInput {
   channelId: string
   messageId: string
   receiverId: string
-  authorId: string
+  authorId?: string
+  excludeAuthor?: boolean
 }
 
 export interface IRecieveQuoteOutput {
