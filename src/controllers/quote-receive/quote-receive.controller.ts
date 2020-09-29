@@ -37,10 +37,11 @@ export class QuoteReceiveController {
       }),
       // transform the data into something that the handler can digest
       map(({ message, params }) => {
-        const { author } = params
+        const { author, exclude } = params
         return {
           message,
           authorId: author && MentionUtils.extractUserSnowflake(author),
+          excludeAuthor: !!exclude,
         }
       }),
       filter(data => !!data)
@@ -52,7 +53,11 @@ export class QuoteReceiveController {
     return `**"${quote.content}"** - <@${quote.authorId}>, ${year}`
   }
 
-  private async handler({ message, authorId }: IReceiveHandlerParams) {
+  private async handler({
+    message,
+    authorId,
+    excludeAuthor,
+  }: IReceiveHandlerParams) {
     await message.react('👀')
     const reply = await message.channel.send('🤔')
 
@@ -63,6 +68,7 @@ export class QuoteReceiveController {
         receiverId: reply.author.id,
         serverId: reply.guild.id,
         authorId,
+        excludeAuthor,
       })
 
       await reply.edit(this.formatMessage(receive))
@@ -75,9 +81,11 @@ export class QuoteReceiveController {
 
 interface IReceiveCommandParams {
   author?: string
+  exclude?: boolean
 }
 
 interface IReceiveHandlerParams {
   authorId?: string
+  excludeAuthor?: boolean
   message: Message
 }
