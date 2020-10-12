@@ -8,6 +8,7 @@ import { QuoteApproveController } from './quote-approve/quote-approve.controller
 import { QuoteRejectController } from './quote-reject/quote-reject.controller'
 import { QuoteRewatchController } from './quote-rewatch/quote-rewatch.controller'
 import { RepositoriesModule } from 'src/repositories/repositories.module'
+import { HelpController } from './help/help.controller';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RepositoriesModule } from 'src/repositories/repositories.module'
     QuoteApproveController,
     QuoteRejectController,
     QuoteRewatchController,
+    HelpController,
   ],
 })
 export class ControllersModule {}
