@@ -15,7 +15,7 @@ export default abstract class CommandParser {
     return this.errorBus.asObservable()
   }
 
-  getOnParseObservable<T>() {
+  getOnParseObservable<T = any>() {
     return this.parsed$ as Observable<IParseResults<T>>
   }
 }
@@ -24,6 +24,7 @@ export interface IParseResults<T = any> {
   command: Command
   params?: T
   message: Message
+  prefix: string
 }
 
 export interface IParseError {
@@ -34,4 +35,5 @@ export interface IParseError {
 export enum Command {
   SUBMIT_QUOTE,
   RECEIVE_QUOTE,
+  HELP,
 }

@@ -45,15 +45,19 @@ export class CommandParserService extends CommandParser {
     messageSvc.prefixedMessage$.subscribe(this.onCommand.bind(this))
   }
 
-  private yargsPathToCommand(argv: yargs.Arguments): Command {
+  private yargsOutputToCommand(argv: yargs.Arguments): Command {
     const serializedPath = argv._.join('/')
+
+    if (!serializedPath && argv.help) {
+      return Command.HELP
+    }
 
     return YARGS_MAPPING.find(
       ({ yargsPath }) => serializedPath === yargsPath.join('/')
     ).command
   }
 
-  private onCommand({ command, message }: ICommandMessage) {
+  private onCommand({ command, message, prefix }: ICommandMessage) {
     this.yargs.parse(command, {}, (error, argv) => {
       if (error) {
         this.errorBus.next({
@@ -69,9 +73,10 @@ export class CommandParserService extends CommandParser {
       delete shallowClone.$0
 
       this.eventBus.next({
-        command: this.yargsPathToCommand(argv),
+        command: this.yargsOutputToCommand(argv),
         params: shallowClone,
         message,
+        prefix,
       })
     })
   }
